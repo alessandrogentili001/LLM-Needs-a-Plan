@@ -13,6 +13,17 @@ This project extends previous work by our colleagues [Merola, Sigh, and Dardouri
 The correct execution of experiments in this project requires substantial computational resources. The majority of our experimental work will be conducted using the **Leonardo supercomputer cluster node** provided by [CINECA](https://www.cineca.it/), one of the most powerfull supercomputing centers. 
 Access to Leonardo's computational capabilities enables us to perform experiments that would be infeasible on standard computing hardware, ensuring the reproducibility and scalability of our research findings.
 
+## Documentation
+
+### Leonardo
+
+The setup and usage of the Leonardo cluster are described in the following guides:
+
+- [Pre-Configuration Steps](assets/1.%20Pre%20Configuration.md)  
+- [Cluster Node Configuration](assets/2.%20Cluster%20Set%20Up.md)  
+- [First Job Submission](assets/3.%20Load%20Local%20Files%20Into%20The%20Cluster.md)  
+- [File Transfer Guide](assets/4.%20First%20Job%20Submission.md)  
+
 ## Getting Started
 
 ### Prerequisites
