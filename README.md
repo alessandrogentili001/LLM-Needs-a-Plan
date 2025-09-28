@@ -2,7 +2,7 @@
 
 ## Authors
 - **Alessandro Gentili** - *AI Student @UniBo* - [GitHub](https://github.com/alessandrogentili001)
-- **Lorenzo Dascenzo** - *AI Student @UniBo* - [GitHub](https://github.com/Lorenzo00dash)
+- **Lorenzo D'Ascenzo** - *AI Student @UniBo* - [GitHub](https://github.com/Lorenzo00dash)
 
 ## Abstract
 
@@ -10,7 +10,7 @@ This project extends previous work by our colleagues [Merola, Sigh, and Dardouri
 
 ## Disclaimer
 
-The correct execution of experiments in this project requires substantial computational resources. The majority of our experimental work will be conducted using the **Leonardo supercomputer cluster node** provided by [CINECA](https://www.cineca.it/), among the largest supercomputing centers. 
+The correct execution of experiments in this project requires substantial computational resources. The majority of our experimental work will be conducted using the **Leonardo supercomputer cluster node** provided by [CINECA](https://www.cineca.it/), one of the most powerfull supercomputing centers. 
 Access to Leonardo's computational capabilities enables us to perform experiments that would be infeasible on standard computing hardware, ensuring the reproducibility and scalability of our research findings.
 
 ## Getting Started
