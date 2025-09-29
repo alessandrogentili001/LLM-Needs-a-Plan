@@ -17,12 +17,16 @@ Access to Leonardo's computational capabilities enables us to perform experiment
 
 ### Leonardo
 
-The setup and usage of the Leonardo cluster are described in the following guides:
+- [Leonardo Guide](assets/Guida%20Leonardo.pdf)
+
+The configuration, setup and usage of the Leonardo cluster are described in the following guides:
 
 - [Pre-Configuration Steps](assets/1.%20Pre%20Configuration.md)  
 - [Cluster Node Configuration](assets/2.%20Cluster%20Set%20Up.md)  
 - [First Job Submission](assets/3.%20Load%20Local%20Files%20Into%20The%20Cluster.md)  
 - [File Transfer Guide](assets/4.%20First%20Job%20Submission.md)  
+
+### Repository Structure 
 
 ## Getting Started
 
