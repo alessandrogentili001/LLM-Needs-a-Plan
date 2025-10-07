@@ -1,2 +1,4 @@
 src/models
+src/models/Llama-4-Scout-17B-16E-Instruct
+src/models/Phi4
 venv
