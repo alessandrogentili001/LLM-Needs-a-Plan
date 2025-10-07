@@ -29,11 +29,11 @@ We recommend the reading of the above mentioned papers in order to get a higher 
 
 ### Leonardo
 
-An official guide to the cluster login and set up is provided:
+An official guide to the cluster login and setup is provided:
 
 - [Leonardo Guide](assets/Guida%20Leonardo.pdf)
 
-The configuration, setup and usage of the Leonardo cluster are described in the following guides:
+Additional step-by-step tutorials about the configuration, setup and usage of the Leonardo cluster are added in the following guides:
 
 - [Pre-Configuration Steps](assets/1.%20Pre%20Configuration.md)  
 - [Cluster Node Configuration](assets/2.%20Cluster%20Set%20Up.md)  
