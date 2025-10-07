@@ -15,6 +15,18 @@ Access to Leonardo's computational capabilities enables us to perform experiment
 
 ## Documentation
 
+### Repository Structure 
+
+### Papers
+
+Two papers inspired this work:
+
+- [Paper 1](assets/2407.11511v1.pdf)
+
+- [Paper 2](assets/2406.05572v2.pdf)
+
+We recommend the reading of the above mentioned papers in order to get a higher viewpoint on the whole methodology applied in this project.
+
 ### Leonardo
 
 - [Leonardo Guide](assets/Guida%20Leonardo.pdf)
@@ -24,9 +36,27 @@ The configuration, setup and usage of the Leonardo cluster are described in the 
 - [Pre-Configuration Steps](assets/1.%20Pre%20Configuration.md)  
 - [Cluster Node Configuration](assets/2.%20Cluster%20Set%20Up.md)  
 - [First Job Submission](assets/3.%20Load%20Local%20Files%20Into%20The%20Cluster.md)  
-- [File Transfer Guide](assets/4.%20First%20Job%20Submission.md)  
+- [File Transfer Guide](assets/4.%20First%20Job%20Submission.md) 
 
-### Repository Structure 
+### Problems
+
+The planning problems, written in PPDL language, are taken from this [repository](https://github.com/potassco/pddl-instances), where a description and multiple instances are provided for each problem. In particular we have selected a couple of them:
+
+- [Tetris](https://github.com/potassco/pddl-instances/tree/master/ipc-2014/domains/tetris-sequential-satisficing)
+
+- [City Car](https://github.com/potassco/pddl-instances/tree/master/ipc-2014/domains/city-car-sequential-satisficing)
+
+Each of the selected probelms comes with a list of instances at different scale and complexity. 
+
+### Models
+
+This project utilizes two primary large language models to evaluate and compare their planning and reasoning capabilities. The selection of these two models allows for a comparative analysis between a large-scale model (Llama) and a highly efficient, smaller model (Phi), providing insights into how architectural differences affect emergent planning abilities.
+
+- [Llama 4 (Scout 17B 16E Instruct)](https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct) needs an authorization both from Meta and Hugging Face to be downloaded.
+
+- [Phi 4](https://huggingface.co/microsoft/phi-4) is freely available directly on Hugging face.
+
+### Validator
 
 ## Getting Started
 
