@@ -29,6 +29,8 @@ We recommend the reading of the above mentioned papers in order to get a higher 
 
 ### Leonardo
 
+An official guide to the cluster login and set up is provided:
+
 - [Leonardo Guide](assets/Guida%20Leonardo.pdf)
 
 The configuration, setup and usage of the Leonardo cluster are described in the following guides:
