@@ -1,0 +1,9 @@
+# Core ML/AI libraries
+torch>=2.1.0
+transformers==4.41.2
+accelerate>=0.29.0
+sentencepiece
+
+# Required for Hugging Face model interaction
+huggingface-hub>=0.20.0
+safetensors
