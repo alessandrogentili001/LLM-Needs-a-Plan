@@ -56,6 +56,10 @@ This project utilizes two primary large language models to evaluate and compare 
 
 - [Phi 4](https://huggingface.co/microsoft/phi-4) is freely available directly on Hugging face.
 
+### Tests
+
+Small scripts are added here to test things on an ongoing basis.
+
 ### Validator
 
 ## Getting Started
