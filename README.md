@@ -61,6 +61,8 @@ Small scripts are added [here](src/tests) to test things on an ongoing basis.
 
 ### Validator
 
+You can find the planning validator [here](https://github.com/KCL-Planning/VAL?utm_source=chatgpt.com).
+
 ## Getting Started
 
 ### Prerequisites
