@@ -38,6 +38,7 @@ Additional step-by-step tutorials about the configuration, setup and usage of th
 - [Cluster Node Configuration](assets/2.%20Cluster%20Set%20Up.md)  
 - [First Job Submission](assets/3.%20Load%20Local%20Files%20Into%20The%20Cluster.md)  
 - [File Transfer Guide](assets/4.%20First%20Job%20Submission.md) 
+- [Work Directory And LLMs Download](assets/5.%20Work%20Directory%20And%20LLMs%20Download.md)
 
 ### Problems
 
