@@ -1,3 +1,9 @@
+# LLMs
 src/models/Llama4
 src/models/Phi4
+
+# Virtual environment 
 venv
+
+# Python cache files
+__pycache__

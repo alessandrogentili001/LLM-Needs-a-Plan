@@ -1,0 +1,3 @@
+MODELS_PATH: "/src/models"
+PROBLEMS_PATH: "/src/problems"
+RESULTS_PATH: "/src/results"
