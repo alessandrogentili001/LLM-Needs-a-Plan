@@ -5,7 +5,7 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import prompts
 from pathlib import Path
-import file_manager
+from file_manager impoert FileManager
 
 sys.path.append(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -16,20 +16,18 @@ from utils.answer_postprocessor import formatter  # extracts the answer
 TRANSFORMERS_VERBOSITY=info
 
 class ModelManager:
-    """Manages loading and interaction with language models."""
+    """Manages loading and interaction with large language models."""
 
     def __init__(self, weights_path):
         """Initialize the ModelManager with model name and path.
 
         Args:
-            model_name (str): Name of the model to load ('llama' )
             weights_path (str): Path to the model weights
         """
-        self.weights_path = weights_path
-        self.model = None
-        self.tokenizer = None
-        self.weights_path = weights_path
-        self.file_mng = file_manager.FileManager()
+        self.weights_path = weights_path  # path to the model weights
+        self.model = None                 # initialize with load()
+        self.tokenizer = None             # initialize with load()
+        self.file_mng = FileManager()     # file manager to handle PDDL files
 
     def load(self):
         """Load the model and tokenizer.
@@ -37,24 +35,29 @@ class ModelManager:
         Returns:
             tuple: (model, tokenizer) loaded and ready to use
         """
+
+        # Check if CUDA is available and set device accordingly
         device_info = "GPU" if torch.cuda.is_available() else "CPU"
         print(
             f"CUDA {'is' if torch.cuda.is_available() else 'is not'} available. Using {device_info}."
         )
 
+        # Load model and tokenizer from the specified weights path
         try:
+            # MODEL
             self.model = AutoModelForCausalLM.from_pretrained(
-                self.weights_path,
-                device_map="auto",
-                torch_dtype=torch.bfloat16,
-                # attn_implementation="flash_attention_2",  # <-- fast attention
+                self.weights_path,          # path to the model weights
+                device_map="auto",          # automatically map model layers to available devices
+                torch_dtype=torch.bfloat16, # use bfloat16 for efficiency
             )
+            # TOKENIZER 
             self.tokenizer = AutoTokenizer.from_pretrained(
-                self.weights_path, padding_side="left"
+                self.weights_path,          # path to the tokenizer weights
+                padding_side="left"         # pad on the left for right-aligned inputs
             )
             return self.model, self.tokenizer
         except Exception as e:
-            print(f"Error loading model {self.model_name}: {e}")
+            print(f"Error loading model {self.model_name} or tokenizer: {e}")
             sys.exit(1)
 
     def generate_response(
@@ -79,28 +82,31 @@ class ModelManager:
         Returns:
             str: Generated response text
         """
-        if not self.model or not self.tokenizer:
-            raise ValueError(
-                "Model and tokenizer must be loaded before generating responses"
-            )
 
-        # adds the system prompt to the input if in args
+        # Check if model and tokenizer are loaded
+        if not self.model or not self.tokenizer:
+            raise ValueError("Model and tokenizer must be loaded before generating responses")
+
+        # Adds the system prompt to the input if in args
         if add_system_prompt:
             messages = [
-                {"role": "system", "content": prompts.system_prompt_pddl},
-                {"role": "user", "content": prompt},
+                {"role": "system", "content": prompts.system_prompt_pddl}, # System prompt
+                {"role": "user", "content": prompt},                       # User's actual request
             ]
         else:
-            messages = [{"role": "user", "content": prompt}]
+            messages = [{"role": "user", "content": prompt}]               # User's actual request only
 
+        # Format messages for model input
         formatted_message = self.tokenizer.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True
         )
 
+        # Tokenize input and move to model's device
         inputs = self.tokenizer(
             formatted_message, return_tensors="pt", truncation=False
         ).to(self.model.device)
 
+        # Generate response
         outputs = self.model.generate(
             **inputs,
             max_new_tokens=max_tokens,
@@ -111,14 +117,18 @@ class ModelManager:
             use_cache=True,
         )
 
+        # Extract response tokens and add the prompt if requested
         response_tokens = (
             outputs[0][inputs["input_ids"].shape[1] :]
             if not include_prompt
             else outputs[0]
         )
-        return self.tokenizer.decode(
+
+        # Decode tokens to text
+        response = self.tokenizer.decode(
             response_tokens, skip_special_tokens=skip_special_tokens
         )
+        return response
 
     # # for bathch generation changes message formatting and results output
     # def batch_generate(
