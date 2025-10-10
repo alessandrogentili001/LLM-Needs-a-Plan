@@ -5,7 +5,7 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import prompts
 from pathlib import Path
-from file_manager impoert FileManager
+from ClassFileManager import FileManager
 
 sys.path.append(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

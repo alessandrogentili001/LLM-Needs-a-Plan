@@ -1,7 +1,7 @@
 import os
 import sys
-from pddl_processor import PDDLProcessor  # PDDLProcessor class to handle structured PDDL processing
-from file_manager import FileManager      # FileManager class to handle file operations and structure PPDL files
+from ClassPDDLProcessor import PDDLProcessor  # PDDLProcessor class to handle structured PDDL processing
+from ClassFileManager import FileManager      # FileManager class to handle file operations and structure PPDL files
 import argparse                           # For command line argument parsing
 
 # Add parent directory to path to access utils
@@ -26,7 +26,7 @@ class PDDLPlanner:
         if "Phi4" in self.args.weights_path:
             from model_manager_phi4 import ModelManager
         else:
-            from model_manager import ModelManager
+            from ClassModelManager import ModelManager
 
         # Initialize the manager 
         self.model_manager = ModelManager(self.args.weights_path)

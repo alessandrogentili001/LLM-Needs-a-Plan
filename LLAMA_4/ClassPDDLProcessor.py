@@ -1,6 +1,6 @@
 import os
 import prompts
-from file_manager import FileManager
+from ClassFileManager import FileManager
 from pathlib import Path
 
 
