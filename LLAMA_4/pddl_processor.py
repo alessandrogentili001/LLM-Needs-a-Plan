@@ -1,5 +1,6 @@
 import os
-import prompts, file_manager
+import prompts
+from file_manager import FileManager
 from pathlib import Path
 
 
@@ -15,9 +16,9 @@ class PDDLProcessor:
             model_manager (ModelManager): ModelManager instance
             output_dir (str): Directory to save outputs
         """
-        self.model_manager = model_manager
-        self.output_dir = output_dir
-        self.file_manager = file_manager.FileManager()
+        self.model_manager = model_manager              # ModelManager instance
+        self.output_dir = output_dir                    # Output directory for plans  
+        self.file_manager = file_manager.FileManager()  # FileManager instance
 
     def process_with_validation(self, domain_data, args):
         """Process each problem in a domain with validation of the plan.
@@ -27,32 +28,34 @@ class PDDLProcessor:
             args: Command line arguments
         """
 
-        domain_text = domain_data["domain_text"]
+        # Extract data info 
+        domain_text = domain_data["domain_text"]      # domain file content in STRING format
         problem_paths = domain_data["problem_paths"]  # list of all problem files for this domain
-        domain_name = domain_data["domain_name"]
+        domain_name = domain_data["domain_name"]      # domain name extracted from domain file path
 
         # Create output directory for this domain
-        domain_output_dir = os.path.join(self.output_dir, domain_name)
-        os.makedirs(domain_output_dir, exist_ok=True)
-        domain_data["domain_output_dir"] = domain_output_dir
+        domain_output_dir = os.path.join(self.output_dir, domain_name)  # create domain-specific output directory
+        os.makedirs(domain_output_dir, exist_ok=True)                   # create the directory if it doesn't exist
+        domain_data["domain_output_dir"] = domain_output_dir            # add output dir to domain data for reference
 
-        # Process each problem in problem_paths individually
+        # Process each problem instance individually
         for problem_path in problem_paths:
+
+            # read the file and check for errors
             problem_text = self.file_manager.read_file(problem_path)
             if problem_text is None:
                 continue
 
-            print(f"Generating response for {problem_path}...")
+            print(f"\nGenerating plan for {problem_path}...")
 
-            # uses the domain text and problem text to create the prompt
+            # Uses the domain text and problem text to create the prompt
             problem_prompt = prompts.tetris_problem_prompt(domain_text, problem_text)
-            # if cot is true, it adds the chain of thought to the prompt
-            if args.cot:
-                problem_prompt = prompts.cot_prompt(problem_prompt)
 
-            # Generate response
-            print("Generating response...")
-            # saving also the number of iterations for confidence evaluation
+            # Enable chain of thoughts if needed
+            if args.cot:
+                problem_prompt = prompts.cot_prompt(problem_prompt)                
+
+            # Generate the plan with validation (multiple iterations if needed)
             response_text, iterations = self.model_manager.generate_with_validation(
                 problem_prompt,
                 problem_path,
@@ -63,10 +66,13 @@ class PDDLProcessor:
                 include_prompt=args.include_prompt,
                 skip_special_tokens=args.skip_special_tokens,
             )
+
+            # Add info for readability 
             response_text = (
                 response_text + "\n\n" + f"Generated in {iterations} iterations."
             )
-            # Save the plan
+
+            # Save the generated plan
             problem_name = Path(problem_path).stem
             plan_path = os.path.join(domain_output_dir, f"{problem_name}_plan.txt")
             self.file_manager.save_file(plan_path, response_text)
