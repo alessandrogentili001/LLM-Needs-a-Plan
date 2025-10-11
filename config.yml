@@ -1,3 +1,17 @@
-MODELS_PATH: "/src/models"
-PROBLEMS_PATH: "/src/problems"
-RESULTS_PATH: "/src/results"
+# Model and data paths configuration
+MODEL_PATH: "src/models/Llama4"  # Phi4 or any other model directory
+PROBLEMS_PATH: "src/data"        # Root directory containing domain folders (tetris, citycar, etc.)
+MODEL_OUTPUT: "src/results"      # Alias for main.py compatibility
+
+# Validation settings
+VAL_EXECUTABLE: "validate"  # VAL executable name or path
+VAL_TIMEOUT: 60  # Seconds
+
+# Model settings
+MAX_TOKENS: 5000
+TEMPERATURE: 0.6
+TOP_K: 10
+
+# Execution settings
+DEFAULT_ITERATIONS: 3  # For iterative validation
+BATCH_SIZE: 1
