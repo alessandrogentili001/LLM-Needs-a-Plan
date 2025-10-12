@@ -4,7 +4,8 @@ PROBLEMS_PATH: "src/data"        # Root directory containing domain folders (tet
 MODEL_OUTPUT: "src/results"      # Alias for main.py compatibility
 
 # Validation settings
-VAL_EXECUTABLE: "validate"  # VAL executable name or path
+VAL_PATH: "VAL/build/linux64/Release/bin"  # Path to VAL binaries directory
+VAL_EXECUTABLE: "Validate"  # VAL executable name (note: capital V)
 VAL_TIMEOUT: 60  # Seconds
 
 # Model settings

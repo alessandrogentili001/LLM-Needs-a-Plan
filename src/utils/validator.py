@@ -8,10 +8,47 @@ VAL Repository: https://github.com/KCL-Planning/VAL
 import subprocess
 import tempfile
 import os
-from typing import Dict
+from pathlib import Path
+from typing import Dict, Optional
+
+# Import configuration
+try:
+    from .configuration import load_config
+except ImportError:
+    # Fallback for direct execution
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    from src.utils.configuration import load_config
 
 
-def validate_plan(domain_path: str, problem_path: str, plan_path: str, val_executable: str = "validate") -> Dict:
+def get_val_executable() -> str:
+    """
+    Get the VAL executable path from configuration.
+    
+    Returns:
+        str: Full path to the VAL executable
+    """
+    try:
+        config = load_config()
+        val_path = config.get("VAL_PATH", "VAL/build/linux64/Release/bin")
+        val_executable = config.get("VAL_EXECUTABLE", "Validate")
+        
+        # Create absolute path from project root
+        project_root = Path(__file__).parent.parent.parent
+        full_val_path = project_root / val_path / val_executable
+        
+        if full_val_path.exists():
+            return str(full_val_path)
+        else:
+            # Fallback to system PATH
+            return val_executable
+            
+    except Exception:
+        # Fallback to default
+        return "Validate"
+
+
+def validate_plan(domain_path: str, problem_path: str, plan_path: str, val_executable: Optional[str] = None) -> Dict:
     """
     Validate a PDDL plan using VAL.
     
@@ -19,18 +56,29 @@ def validate_plan(domain_path: str, problem_path: str, plan_path: str, val_execu
         domain_path (str): Path to the PDDL domain file
         problem_path (str): Path to the PDDL problem file
         plan_path (str): Path to the plan file to validate
-        val_executable (str): VAL executable name or path (default: "validate")
+        val_executable (Optional[str]): VAL executable path (auto-detected if None)
         
     Returns:
         Dict: {"valid": bool, "error": str or None}
     """
     try:
-        # Run VAL: validate domain.pddl problem.pddl plan.txt
+        # Get VAL executable path
+        if val_executable is None:
+            val_executable = get_val_executable()
+        
+        # Get timeout from config
+        try:
+            config = load_config()
+            timeout = config.get("VAL_TIMEOUT", 60)
+        except:
+            timeout = 60
+        
+        # Run VAL: Validate domain.pddl problem.pddl plan.txt
         result = subprocess.run(
             [val_executable, domain_path, problem_path, plan_path],
             capture_output=True,
             text=True,
-            timeout=60
+            timeout=timeout
         )
         
         # VAL returns 0 for valid plans, non-zero for invalid
@@ -58,7 +106,7 @@ def validate_plan(domain_path: str, problem_path: str, plan_path: str, val_execu
         }
 
 
-def validate_plan_from_text(domain_path: str, problem_path: str, plan_text: str, val_executable: str = "validate") -> Dict:
+def validate_plan_from_text(domain_path: str, problem_path: str, plan_text: str, val_executable: Optional[str] = None) -> Dict:
     """
     Validate a plan from text content by creating a temporary plan file.
     
@@ -66,7 +114,7 @@ def validate_plan_from_text(domain_path: str, problem_path: str, plan_text: str,
         domain_path (str): Path to domain file
         problem_path (str): Path to problem file
         plan_text (str): Plan content as text
-        val_executable (str): VAL executable name or path
+        val_executable (Optional[str]): VAL executable path (auto-detected if None)
         
     Returns:
         Dict: {"valid": bool, "error": str or None}

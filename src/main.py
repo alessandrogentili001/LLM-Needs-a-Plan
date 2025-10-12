@@ -6,6 +6,7 @@ This script provides the command-line interface for the LLM-Needs-a-Plan system,
 allowing users to run planning experiments with different models and domains.
 """
 
+# Standard library imports
 import os
 import sys
 import argparse
@@ -16,12 +17,12 @@ src_path = Path(__file__).parent
 sys.path.insert(0, str(src_path))
 
 # Import core modules
-from core.pddl_planner import PDDLPlanner
-from utils.configuration import load_config
+from core.pddl_planner import PDDLPlanner   # Comes with other core modules
+from utils.configuration import load_config # config.yml
 
 
 def main():
-    """Main function to run the PDDL planning program."""
+    """Main function to run the PDDL planning pipeline."""
     
     print("Starting PDDL Planning Framework...")
     print("=" * 50)
@@ -158,8 +159,8 @@ def main():
     try:
         # Initialize and run planner
         planner = PDDLPlanner(args, config)
-        planner.setup()
-        planner.run()
+        planner.setup() # Load models (ModelManager) and problems (FileManager)
+        planner.run()   # Run the planning process (PDDLProcessor)
         
         print("\nPDDL Planning Framework completed successfully!")
         
