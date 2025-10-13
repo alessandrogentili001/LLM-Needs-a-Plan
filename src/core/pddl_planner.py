@@ -136,10 +136,13 @@ class PDDLPlanner:
             "add_system_prompt": self.args.add_system_prompt,
             "sampling": self.args.sampling,
             "max_tokens": self.args.max_tokens,
-            "temperature": self.args.temperature,
             "include_prompt": self.args.include_prompt,
             "skip_special_tokens": self.args.skip_special_tokens
         }
+        
+        # Only pass temperature if sampling is enabled
+        if self.args.sampling:
+            processing_kwargs["temperature"] = self.args.temperature
         
         if self.args.batch:
             # Process all domains in batch

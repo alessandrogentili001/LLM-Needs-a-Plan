@@ -254,17 +254,17 @@ class ModelManager:
             "num_beams": 1,  # No beam search to save memory
         }
         
-        if sampling:
+        # Handle sampling vs deterministic generation properly
+        if sampling and temperature > 0:
             generation_config.update({
                 "temperature": temperature,
                 "top_k": top_k,
                 "top_p": 0.9,
             })
         else:
-            generation_config.update({
-                "do_sample": False,
-                # Don't set temperature when not sampling to avoid warning
-            })
+            # Deterministic generation - clean config to avoid warnings
+            generation_config["do_sample"] = False
+            # Don't set temperature, top_p, top_k for deterministic generation
 
         # Generate response with memory management
         try:
