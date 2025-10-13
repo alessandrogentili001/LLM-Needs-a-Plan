@@ -95,18 +95,53 @@ class ModelManager:
         print(f"CUDA {'is' if torch.cuda.is_available() else 'is not'} available. Using {device_info}.")
         
         if torch.cuda.is_available():
-            print(f"GPU: {torch.cuda.get_device_name(0)}")
-            print(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
+            gpu_count = torch.cuda.device_count()
+            print(f"Available GPUs: {gpu_count}")
+            for i in range(gpu_count):
+                gpu_name = torch.cuda.get_device_name(i)
+                gpu_memory = torch.cuda.get_device_properties(i).total_memory / 1e9
+                print(f"  GPU {i}: {gpu_name} ({gpu_memory:.1f} GB)")
+            
+            total_memory = sum(torch.cuda.get_device_properties(i).total_memory 
+                             for i in range(gpu_count)) / 1e9
+            print(f"Total GPU Memory Available: {total_memory:.1f} GB")
 
         try:
             print(f"Loading model from: {self.weights_path}")
             
+            # Configure multi-GPU setup
+            gpu_count = torch.cuda.device_count() if torch.cuda.is_available() else 0
+            
             # Load model with appropriate configuration
             model_kwargs = {
-                "device_map": "auto",
                 "torch_dtype": torch.bfloat16,
-                "trust_remote_code": True,  # Some models may require this
+                "trust_remote_code": True,
             }
+            
+            # Configure device mapping based on available GPUs
+            if gpu_count == 0:
+                model_kwargs["device_map"] = "cpu"
+                print("Using CPU (no GPUs available)")
+            elif gpu_count == 1:
+                model_kwargs["device_map"] = "auto"
+                print("Using single GPU with automatic mapping")
+            else:
+                # Use aggressive memory management for large models like Llama4
+                if self.model_type == 'llama4':
+                    # More aggressive memory limits - reserve 15GB per GPU for inference
+                    total_memory_per_gpu = 64  # A100 has ~64GB
+                    reserved_for_inference = 15  # Increase reservation
+                    available_per_gpu = total_memory_per_gpu - reserved_for_inference
+                    
+                    model_kwargs["device_map"] = "balanced_low_0"
+                    model_kwargs["max_memory"] = {i: f"{available_per_gpu}GB" for i in range(gpu_count)}
+                    model_kwargs["low_cpu_mem_usage"] = True
+                    model_kwargs["torch_dtype"] = torch.float16  # Use fp16 instead of bfloat16
+                    
+                    print(f"Using aggressive memory setup: {gpu_count} GPUs, {available_per_gpu}GB per GPU, {reserved_for_inference}GB reserved")
+                else:
+                    model_kwargs["device_map"] = "auto"  # Standard auto mapping for other models
+                    print(f"Using multi-GPU setup with {gpu_count} GPUs (automatic load balancing)")
             
             # Adjust loading parameters based on model type
             #if self.model_type == 'phi4':
@@ -209,13 +244,14 @@ class ModelManager:
             max_length=4000  # Leave room for generation
         ).to(self.model.device)
 
-        # Generation parameters
+        # Generation parameters with memory optimization
         generation_config = {
             "max_new_tokens": max_tokens,
             "do_sample": sampling,
             "eos_token_id": self.tokenizer.eos_token_id,
             "pad_token_id": self.tokenizer.pad_token_id,
-            "use_cache": True,
+            "use_cache": False if self.model_type == 'llama4' else True,  # Disable cache for Llama4 to save memory
+            "num_beams": 1,  # No beam search to save memory
         }
         
         if sampling:
@@ -230,8 +266,12 @@ class ModelManager:
                 # Don't set temperature when not sampling to avoid warning
             })
 
-        # Generate response
+        # Generate response with memory management
         try:
+            # Clear cache before generation for large models
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            
             with torch.no_grad():
                 outputs = self.model.generate(
                     **inputs,
@@ -249,10 +289,17 @@ class ModelManager:
                 skip_special_tokens=skip_special_tokens
             )
             
+            # Clean up GPU memory after generation
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            
             return response.strip()
             
         except Exception as e:
             print(f"Error during generation: {e}")
+            # Clean up on error too
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
             return f"Generation failed: {str(e)}"
 
     def iterative_planning_with_validation(

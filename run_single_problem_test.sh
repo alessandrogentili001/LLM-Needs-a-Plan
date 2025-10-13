@@ -1,22 +1,22 @@
 #!/bin/bash
 #SBATCH --account=IscrC_ArtLLMs
 #SBATCH --partition=boost_usr_prod
-#SBATCH --time=01:00:00
+#SBATCH --time=00:45:00
 #SBATCH --gres=gpu:4
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=32
 #SBATCH --mem=256G
-#SBATCH --job-name=llm_quick_test
-#SBATCH --output=quick_experiment_%j.out
-#SBATCH --error=quick_experiment_%j.err
+#SBATCH --job-name=llm_single_test
+#SBATCH --output=single_test_%j.out
+#SBATCH --error=single_test_%j.err
 
 # ====================================================================
-# Quick LLM-Needs-a-Plan Experiment (Single Problem Test)
+# Single Problem LLM Test (For Memory-Constrained Testing)
 # ====================================================================
 
 echo "=========================================="
-echo "Quick PDDL Planning Test"
+echo "Single Problem PDDL Planning Test"
 echo "=========================================="
 echo "Job ID: $SLURM_JOB_ID"
 echo "Start Time: $(date)"
@@ -35,7 +35,25 @@ export TOKENIZERS_PARALLELISM=false
 nvidia-smi --query-gpu=name,memory.free --format=csv,noheader
 
 echo "=========================================="
-echo "Running Quick Test"
+echo "Creating Limited Test Dataset"
+echo "=========================================="
+
+# Create a temporary test directory with just 3 problems
+TEST_DIR="src/test_data"
+mkdir -p "$TEST_DIR/tetris"
+
+# Copy domain file
+cp src/data/tetris/tetris_domain.pddl "$TEST_DIR/tetris/"
+
+# Copy just the first 3 problem files
+echo "Copying first 3 tetris problems for testing..."
+ls src/data/tetris/*.pddl | grep -v domain | head -3 | while read file; do
+    cp "$file" "$TEST_DIR/tetris/"
+    echo "  Copied: $(basename $file)"
+done
+
+echo "=========================================="
+echo "Running Limited Test"
 echo "=========================================="
 
 # Clear any existing GPU processes
@@ -47,32 +65,44 @@ if torch.cuda.is_available():
     print(f'Cleared GPU memory. Available: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB')
 "
 
-# Run with minimal parameters - single iteration using Llama4
-# Use smaller token limit and conservative settings for memory efficiency
+# Run with the limited test dataset
 python src/main.py \
+    --problems_path "$TEST_DIR" \
     --domain tetris \
     --max_iterations 1 \
     --max_tokens 1500 \
     --temperature 0.1 \
     --verbose \
-    --model llama4 
+    --model llama4
 
 RESULT=$?
 
 echo "=========================================="
-echo "Quick Test Results"
+echo "Single Problem Test Results"
 echo "=========================================="
 
 if [ $RESULT -eq 0 ]; then
-    echo "✓ QUICK TEST PASSED"
-    echo "Ready for full experiments!"
+    echo "✓ LIMITED TEST PASSED"
+    echo "Llama4 can handle individual problems successfully"
+    echo "The issue may be memory accumulation across multiple problems"
+    
+    echo ""
+    echo "Recommendations:"
+    echo "1. Use the new experiment framework with single-problem jobs"
+    echo "2. Consider implementing memory cleanup between problems"
+    echo "3. Use Phi4 model for batch processing of many problems"
 else
-    echo "✗ QUICK TEST FAILED"
-    echo "Check configuration before running full experiment"
+    echo "✗ LIMITED TEST FAILED"
+    echo "Check Llama4 model configuration and GPU resources"
 fi
 
-echo "Check results in src/results/"
+echo ""
+echo "Test Results:"
 ls -la src/results/ 2>/dev/null || echo "No results directory found"
+
+# Cleanup test directory
+echo "Cleaning up test directory..."
+rm -rf "$TEST_DIR"
 
 # Final GPU memory cleanup
 echo "Final GPU memory cleanup..."
