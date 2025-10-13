@@ -109,10 +109,10 @@ class ModelManager:
             }
             
             # Adjust loading parameters based on model type
-            if self.model_type == 'phi4':
-                model_kwargs.update({
-                    "attn_implementation": "flash_attention_2" if torch.cuda.is_available() else None
-                })
+            #if self.model_type == 'phi4':
+            #    model_kwargs.update({
+            #        "attn_implementation": "flash_attention_2" if torch.cuda.is_available() else None
+            #    })
             
             # Load model
             self.model = AutoModelForCausalLM.from_pretrained(
@@ -226,8 +226,8 @@ class ModelManager:
             })
         else:
             generation_config.update({
-                "temperature": 0.0,
                 "do_sample": False,
+                # Don't set temperature when not sampling to avoid warning
             })
 
         # Generate response
@@ -288,11 +288,15 @@ class ModelManager:
             conversation_text = self._format_conversation(messages)
             
             # Generate response
+            # Remove conflicting arguments from generation_kwargs
+            filtered_kwargs = {k: v for k, v in generation_kwargs.items() 
+                             if k not in ['add_system_prompt', 'include_prompt']}
+            
             response = self.generate_response(
                 conversation_text,
                 add_system_prompt=False,  # Already in conversation
                 include_prompt=False,
-                **generation_kwargs
+                **filtered_kwargs
             )
             
             # Extract and validate plan
