@@ -53,7 +53,7 @@ def main():
     )
     parser.add_argument(
         "--output_dir",
-        default=config.get("MODEL_OUTPUT", "./model_outputs"),
+        default=config.get("MODEL_OUTPUT", "src/results"),
         help="Directory to save generated plans and outputs"
     )
     
@@ -72,7 +72,7 @@ def main():
     parser.add_argument(
         "--max_iterations",
         type=int,
-        default=3,
+        default=1,
         help="Maximum validation iterations per problem"
     )
     
@@ -81,12 +81,12 @@ def main():
         "--sampling",
         action="store_true", 
         default=False,
-        help="Use sampling for generation (temperature 0.6, top_k 10)"
+        help="Use sampling for generation (temperature 0.6, top_k 10)" 
     )
     parser.add_argument(
         "--temperature",
         type=float,
-        default=0.6,
+        default=0.1,
         help="Temperature for sampling (only used with --sampling)"
     )
     parser.add_argument(

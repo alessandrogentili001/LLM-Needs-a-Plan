@@ -1,0 +1,220 @@
+# Temperature Sensitivity Analysis - Phi4 Planning Research
+# Step-by-step analytical investigation of temperature effects on planning performance
+# Research Question: How does generation temperature affect plan quality, creativity, and consistency?
+
+# =============================================================================
+# EXPERIMENT METADATA
+# =============================================================================
+experiment:
+  title: "Temperature Sensitivity Analysis for Phi4 Planning"
+  version: "1.0"
+  date: "2025-10-14"
+  
+  research_hypothesis: |
+    "Lower temperatures (0.0-0.3) will produce more deterministic and valid plans,
+    while higher temperatures (0.5-0.9) will show increased creativity but potentially
+    lower consistency and validity. Optimal temperature for planning tasks is expected
+    to be in the 0.1-0.3 range."
+  
+  success_criteria:
+    - Clear correlation between temperature and plan validity
+    - Measurable differences in plan consistency
+    - Identification of optimal temperature range
+    - Statistical significance of temperature effects
+
+# =============================================================================
+# INFRASTRUCTURE SETUP
+# =============================================================================
+infrastructure:
+  cluster:
+    partition: "boost_usr_prod"
+    account: "IscrC_ArtLLMs"
+    time_limit: "24:00:00"
+    nodes: 1
+    cpus: 8
+    memory: "64GB"
+    gpus: 1
+    
+  paths:
+    base_dir: "/leonardo_work/IscrC_ArtLLMs/aless/LLM-Needs-a-Plan"
+    results_dir: "/leonardo_work/IscrC_ArtLLMs/aless/LLM-Needs-a-Plan/experiments/results/temperature_analysis"
+    data_dir: "/leonardo_work/IscrC_ArtLLMs/aless/LLM-Needs-a-Plan/src/data"
+
+# =============================================================================
+# MODEL CONFIGURATION
+# =============================================================================
+model:
+  name: "Phi4"
+  path: "src/models/Phi4"
+  
+  # Fixed parameters (control variables)
+  fixed_parameters:
+    max_new_tokens: 5000
+    top_p: 0.9
+    top_k: 50
+    repetition_penalty: 1.0
+    do_sample: true
+    pad_token_id: 0
+    eos_token_id: 2
+    
+  # Variable parameter: temperature
+  temperature_values:
+    - value: 0.0
+      description: "Deterministic (greedy decoding)"
+      expected_behavior: "Highly consistent, conservative plans"
+      
+    - value: 0.1
+      description: "Very low randomness"  
+      expected_behavior: "Consistent with slight variation"
+      
+    - value: 0.3
+      description: "Low-medium randomness"
+      expected_behavior: "Good balance of consistency and variation"
+      
+    - value: 0.5
+      description: "Medium randomness"
+      expected_behavior: "Moderate creativity with some inconsistency"
+      
+    - value: 0.7
+      description: "High randomness"
+      expected_behavior: "Creative but potentially less reliable"
+      
+    - value: 0.9
+      description: "Very high randomness"
+      expected_behavior: "Highly creative but likely inconsistent"
+
+# =============================================================================
+# EXPERIMENTAL DESIGN
+# =============================================================================
+experimental_design:
+  
+  # Controlled variables
+  controls:
+    prompt_template: "direct"  # Single prompt style for consistency
+    model_version: "Phi4"     # Single model
+    validation_method: "VAL"  # Consistent validation
+    
+  # Test domains (progressive complexity)
+  domains:
+
+    tetris:
+      name: "Tetris Planning"
+      domain_file: "tetris-domain.pddl"
+      problems: ["tetris01.pddl", "tetris02.pddl", "tetris03.pddl"]
+      complexity: "medium"
+      expected_sensitivity: "medium"  # More complex, moderate temperature effects
+        
+  # Replication strategy
+  replication:
+    runs_per_condition: 1  # Multiple runs for statistical power
+    randomization: true    # Randomize execution order
+    seed_strategy: "fixed_per_run"  # Fixed seed within run, different across runs
+
+# =============================================================================
+# PROMPT CONFIGURATION
+# =============================================================================
+prompt:
+  template: |
+    You are an AI planning assistant specialized in PDDL (Planning Domain Definition Language).
+    
+    Given the following planning domain and problem, generate a valid sequence of actions that transforms the initial state to achieve the goal state.
+    
+    Domain:
+    {domain}
+    
+    Problem:
+    {problem}
+    
+    Requirements:
+    1. Provide only valid PDDL actions
+    2. Ensure each action's preconditions are satisfied
+    3. Generate a complete plan that achieves the goal
+    4. Use the exact action names and parameters from the domain
+    
+    Plan:
+  
+  consistency_check: true  # Same prompt for all temperature conditions
+
+# =============================================================================
+# MEASUREMENT FRAMEWORK
+# =============================================================================
+metrics:
+  
+  # Primary metrics (plan quality)
+  primary:
+    plan_validity:
+      description: "Whether the generated plan is syntactically valid"
+      measurement: "binary (valid/invalid)"
+      
+    plan_executability:
+      description: "Whether the plan can be executed successfully"
+      measurement: "binary (executable/not_executable)"
+      
+    goal_achievement:
+      description: "Whether the plan achieves the goal state"
+      measurement: "binary (achieves_goal/fails_goal)"
+      
+    plan_optimality:
+      description: "Length efficiency compared to optimal solution"
+      measurement: "ratio (plan_length/optimal_length)"
+  
+  # Secondary metrics (generation characteristics)
+  secondary:
+    generation_time:
+      description: "Time taken to generate the plan"
+      measurement: "seconds"
+      
+    response_length:
+      description: "Total tokens in response"
+      measurement: "token_count"
+      
+    action_diversity:
+      description: "Variety of actions used in plan"
+      measurement: "unique_actions/total_actions"
+  
+  # Consistency metrics (across runs) --- currently disabled since runs_per_condition=1
+  #consistency:
+  #  plan_similarity:
+  #    description: "Similarity between plans for same problem"
+  #    measurement: "edit_distance_based_similarity"
+      
+  #  outcome_consistency:
+  #    description: "Consistency of success/failure across runs"
+  #    measurement: "percentage_same_outcome"
+
+# =============================================================================
+# STATISTICAL ANALYSIS PLAN
+# =============================================================================
+analysis:
+      
+  # Correlation analysis  
+  correlation:
+    variables: ["temperature", "plan_optimality", "generation_time", "action_diversity"]
+    method: "pearson_correlation"
+    
+  # Trend analysis
+  trend:
+    method: "polynomial_regression"
+    purpose: "identify_optimal_temperature_range"
+
+# =============================================================================
+# EXPERIMENT EXECUTION PLAN
+# =============================================================================
+execution:
+
+  # Full experiment
+  full:
+    temperature_values: "all"              # All 6 temperature values
+    domains: "all"                         # All domains
+    runs_per_condition: 1                  # Single run per condition
+    purpose: "comprehensive_analysis"
+      
+  # Output organization
+  results_structure:
+    base_path: "temperature_analysis_{timestamp}"
+    subdirectories:
+      - "raw_results"      # Individual experiment outputs
+      - "processed_data"   # Cleaned and structured data
+      - "analysis"         # Statistical analysis results
+      - "visualizations"   # Plots and charts
+      - "reports"          # Summary reports

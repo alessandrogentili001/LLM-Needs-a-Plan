@@ -1,53 +1,274 @@
-# LLM-Needs-a-Plan Experiment Framework
+# 🧠 Phi4 Planning Research Framework
 
-This directory contains a comprehensive framework for running systematic experiments on Large Language Models for automated planning tasks. The framework supports multi-model comparisons across different PDDL domains with automated resource management and result analysis.
+This directory contains an advanced research framework for systematic exploration of Phi4 model capabilities in automated planning. The framework focuses on understanding model reasoning patterns, parameter sensitivity, and emergent capabilities through structured experiments.
+
+## 🎯 Research Focus
+
+The framework is designed to investigate:
+
+- **Parameter Sensitivity**: How generation parameters affect planning performance
+- **Prompt Engineering**: Effectiveness of different prompting strategies  
+- **Reasoning Emergence**: Development of planning capabilities through iterations
+- **Domain Generalization**: Model performance across different planning complexity levels
 
 ## 📁 Directory Structure
 
 ```
 experiments/
 ├── configs/
-│   └── experiment_config.yml     # Main configuration file
-├── scripts/                      # Generated SLURM job scripts
-├── results/                      # Experiment outputs and results
-├── logs/                        # SLURM job logs and monitoring data
-├── generate_experiments.py      # Experiment generation tool
-├── monitor_experiments.py       # Monitoring and analysis tool
-└── README.md                    # This file
+│   └── experiment_config.yml          # Research configuration file
+├── results/                           # Organized experiment results
+│   ├── parameter_sensitivity/         # Parameter exploration results
+│   ├── prompt_engineering/           # Prompt modality comparisons
+│   ├── iterative_reasoning/          # Multi-iteration experiments
+│   ├── configurations/               # Generated experiment configs
+│   ├── analysis/                     # Analysis outputs and reports
+│   └── metadata/                     # Experiment tracking data
+├── templates/                        # Experiment templates
+├── phi4_research_generator.py        # Research experiment generator
+├── phi4_research_analyzer.py         # Advanced analysis tool
+├── run_experiment.py                 # Single experiment runner
+├── analyze_results.py                # General analysis tool
+└── README.md                         # This file
 ```
 
-## ⚙️ Configuration
+## 🔬 Research Configuration
 
-### Experiment Configuration (`configs/experiment_config.yml`)
+### Core Research Elements
 
-The main configuration file defines:
+The `experiment_config.yml` defines a comprehensive research framework:
 
-- **Global Settings**: Cluster configuration, paths, resource limits
-- **Models**: Available models with GPU requirements and generation parameters
-- **Domains**: PDDL domains with associated problems and complexity ratings
-- **Experiment Sets**: Pre-defined experiment combinations with priorities
-- **Execution Settings**: Concurrency limits, retry policies, validation options
-
-#### Example Configuration Structure:
-
+#### 1. **Research Metadata**
 ```yaml
-global:
-  cluster:
-    partition: "boost_usr_prod"
-    account: "cin_staff"
-    time_limit: "02:00:00"
+research:
+  project_title: "Phi4 Reasoning Capabilities in Automated Planning"
+  research_questions:
+    - "How do different prompt modalities affect planning performance?"
+    - "What is the optimal temperature for planning tasks?"
+    - "Does iterative prompting improve plan quality?"
+```
 
-models:
-  phi4:
-    name: "Phi4"
-    path: "src/models/Phi4"
-    gpus: 1
-    generation_config:
-      temperature: 0.1
-      max_new_tokens: 2048
+#### 2. **Advanced Prompt Modalities**
+- **Direct Planning**: Straightforward problem-solution prompting
+- **Chain-of-Thought**: Step-by-step reasoning approach
+- **Few-Shot Learning**: Learning from examples
+- **Self-Reflection**: Generate-validate-improve cycle
+- **Adversarial Validation**: Challenge and refine plans
 
-domains:
-  tetris:
+#### 3. **Parameter Exploration Space**
+```yaml
+parameter_space:
+  temperature:
+    values: [0.0, 0.1, 0.3, 0.5, 0.7, 0.9]
+    hypothesis: "Lower temperatures yield more precise plans"
+  
+  top_p:
+    values: [0.8, 0.9, 0.95, 1.0]
+    hypothesis: "Moderate top_p balances quality and diversity"
+```
+
+#### 4. **Research Experiments**
+- **Parameter Sensitivity**: Systematic parameter exploration
+- **Prompt Engineering**: Comparative prompting strategy analysis
+- **Iterative Reasoning**: Multi-turn reasoning capabilities
+
+## 🚀 Getting Started
+
+### 1. Quick Research Experiment
+
+```bash
+# Generate parameter sensitivity experiments
+cd experiments/
+python phi4_research_generator.py --experiment-types parameter_sensitivity
+
+# Run a single experiment
+python run_experiment.py run-set parameter_sensitivity
+
+# Analyze results
+python phi4_research_analyzer.py --generate-report
+```
+
+### 2. Custom Research Setup
+
+```bash
+# Preview what experiments would be generated
+python phi4_research_generator.py --dry-run
+
+# Generate specific experiment type
+python phi4_research_generator.py --experiment-types prompt_engineering
+
+# Monitor and analyze
+python phi4_research_analyzer.py --experiment-types prompt_engineering
+```
+
+## 🔧 Research Tools
+
+### Experiment Generation (`phi4_research_generator.py`)
+
+Advanced generator for research-focused experiments:
+
+```bash
+# Generate all research experiments
+python phi4_research_generator.py
+
+# Generate specific research area
+python phi4_research_generator.py --experiment-types parameter_sensitivity prompt_engineering
+
+# Dry run to preview experiments  
+python phi4_research_generator.py --dry-run
+```
+
+**Features:**
+- Automatic parameter combination generation
+- Structured result organization
+- Research metadata tracking
+- Configuration-result linking
+
+### Research Analysis (`phi4_research_analyzer.py`)
+
+Comprehensive analysis tool for research insights:
+
+```bash
+# Generate full research report
+python phi4_research_analyzer.py --generate-report
+
+# Create visualizations only
+python phi4_research_analyzer.py --visualizations-only
+
+# Analyze specific experiment types
+python phi4_research_analyzer.py --experiment-types parameter_sensitivity
+```
+
+**Analysis Capabilities:**
+- Parameter sensitivity analysis with correlation studies
+- Prompt effectiveness comparative statistics
+- Emergent capability pattern recognition
+- Statistical significance testing
+- Research visualization generation
+
+## 📊 Research Insights
+
+### Parameter Sensitivity Analysis
+
+The framework analyzes how generation parameters affect:
+- Plan validity and executability
+- Generation time and efficiency  
+- Reasoning coherence and quality
+- Success rates across domains
+
+### Prompt Engineering Effectiveness
+
+Comparative analysis includes:
+- Success rate comparisons across modalities
+- Statistical significance testing
+- Domain-specific effectiveness patterns
+- Reasoning quality metrics
+
+### Emergent Capabilities
+
+Investigation of:
+- Reasoning pattern development
+- Iterative improvement capabilities
+- Complexity scaling behavior
+- Transfer learning across domains
+
+## 🎯 Research Applications
+
+### Academic Research
+
+The framework supports:
+- **Publication-ready analysis**: Statistical tests, visualizations, comprehensive reports
+- **Reproducible experiments**: Complete configuration tracking and version control
+- **Systematic exploration**: Structured parameter space exploration
+- **Comparative studies**: Multi-modal and multi-parameter comparisons
+
+### Model Development
+
+Research insights for:
+- **Parameter tuning**: Data-driven optimization recommendations  
+- **Prompt optimization**: Evidence-based prompting strategies
+- **Capability assessment**: Understanding model strengths and limitations
+- **Scaling analysis**: Performance prediction for different configurations
+
+## 📋 Result Organization
+
+### Hierarchical Structure
+
+Results are organized as:
+```
+results/
+└── {experiment_type}/
+    └── {prompt_modality}/
+        └── {parameter_hash}/
+            └── {domain}/
+                ├── experiment_config.json
+                ├── results.json
+                └── analysis.json
+```
+
+### Metadata Tracking
+
+Each experiment includes:
+- **Configuration ID**: Unique experiment identifier
+- **Parameter Hash**: Reproducibility tracking
+- **Research Context**: Link to research questions
+- **Execution Metadata**: Timestamps, versions, environment info
+
+## 🔍 Advanced Features
+
+### Automatic Linking System
+
+- **Config-to-Results**: Automatic linking between configurations and results
+- **Parameter Tracking**: Hash-based parameter combination identification
+- **Version Control**: Experiment versioning and reproducibility
+- **Research Context**: Research question mapping to experiments
+
+### Quality Control
+
+- **Validation Pipeline**: Automatic result validation
+- **Statistical Significance**: Built-in statistical testing
+- **Anomaly Detection**: Identification of unusual results
+- **Manual Review Triggers**: Alerts for results requiring investigation
+
+## 📚 Best Practices
+
+### Research Planning
+
+1. **Start Small**: Begin with parameter_sensitivity quick tests
+2. **Iterate**: Use insights from initial experiments to design follow-ups
+3. **Document**: Maintain clear research questions and hypotheses
+4. **Validate**: Use statistical testing for robust conclusions
+
+### Experiment Design
+
+1. **Control Variables**: Systematic parameter variation
+2. **Statistical Power**: Ensure sufficient sample sizes
+3. **Reproducibility**: Use consistent random seeds and configurations
+4. **Baseline Comparison**: Always include baseline conditions
+
+### Analysis and Reporting
+
+1. **Multiple Metrics**: Consider various performance dimensions
+2. **Statistical Rigor**: Apply appropriate statistical tests
+3. **Visualization**: Create clear, publication-ready plots
+4. **Interpretation**: Connect results back to research questions
+
+## 🚀 Future Extensions
+
+The framework is designed for extensibility:
+
+- **Additional Models**: Easy integration of new models beyond Phi4
+- **New Domains**: Support for additional PDDL domains and complexity levels
+- **Advanced Prompting**: Integration of novel prompting techniques
+- **Real-time Analysis**: Live experiment monitoring and adaptive parameter selection
+
+## 📞 Support and Documentation
+
+For detailed information:
+- See `templates/` for experiment template examples
+- Check `configs/experiment_config.yml` for configuration reference
+- Review generated reports for analysis methodology
+- Examine `phi4_research_*.py` scripts for implementation details
     name: "Tetris"
     domain_file: "tetris-domain.pddl"
     problems: ["tetris01.pddl", "tetris02.pddl", ...]
