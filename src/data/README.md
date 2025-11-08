@@ -16,15 +16,7 @@ src/data/
 │   ├── domain.pddl
 │   ├── problem_01.pddl
 │   └── ...
-├── logistics/
-│   ├── README.md            
-│   ├── domain.pddl
-│   ├── problem_01.pddl
-│   └── ...
-└── blocksworld/
-    ├── README.md            
-    ├── domain.pddl
-    ├── problem_01.pddl
+├── new_problem/
     └── ...
 ```
 
