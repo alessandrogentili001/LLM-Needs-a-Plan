@@ -19,8 +19,14 @@ This directory contains the large language model weights used by the LLM-Needs-a
 ### Gemma3 (`Gemma3/`)
 - **Type**: Google's Gemma-3 model
 - **Size**: ~27B parameters
-- **Memory Requirements**: 48GB+ VRAM recommended
+- **Memory Requirements**: 64GB+ VRAM recommended
 - **Link**: https://huggingface.co/google/gemma-3-27b-it
+
+### Kimi Dev (`Kimi/`)
+- **Type**: Moonshotai's Kimi-Dev model 
+- **Size**: ~72B parameters
+- **Memory Requirements**: 256GB+ VRAM recommended
+- **Link**: https://huggingface.co/moonshotai/Kimi-Dev-72B
 
 ## Model Selection
 
