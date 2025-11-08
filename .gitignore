@@ -1,7 +1,5 @@
 # LLMs
 src/models
-src/models/Llama4
-src/models/Phi4
 
 # Virtual environment 
 venv
