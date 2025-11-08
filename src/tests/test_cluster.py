@@ -189,8 +189,9 @@ def test_model_detection():
         
         # Test model detection for available paths
         model_paths = [
-            project_root / "src" / "models" / "Llama4",
-            project_root / "src" / "models" / "Phi4"
+            project_root / "src" / "models" / "Llama3",
+            project_root / "src" / "models" / "Phi4",
+            project_root / "src" / "models" / "Gemma3"
         ]
         
         models_found = False

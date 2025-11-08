@@ -45,12 +45,12 @@ for domain_data in domains_data:
 
 ### ModelManager (`model_manager.py`)
 
-Manages loading and interaction with large language models (Llama4, Phi-4).
+Manages loading and interaction with large language models.
 
 **Key Features:**
-- Automatic model type detection (Llama4, Phi-4, unknown)
-- GPU/CPU device management
-- Chat template support
+- Automatic model type detection (llama3, phi4, gemma3)
+- GPU/CPU device management with multi-GPU support
+- Chat template support for all models
 - Iterative plan generation with validation
 - Response generation with various parameters
 
@@ -59,7 +59,7 @@ Manages loading and interaction with large language models (Llama4, Phi-4).
 from core.model_manager import ModelManager
 
 # Initialize and load model
-mm = ModelManager("src/models/Llama4")
+mm = ModelManager("src/models/Phi4")
 model, tokenizer = mm.load()
 
 # Generate response
@@ -178,7 +178,7 @@ config = load_config()
 # Setup arguments (normally from command line)
 class Args:
     problems_path = "src/data"
-    weights_path = "src/models/Llama4"
+    weights_path = "src/models/Llama3"
     output_dir = "./results"
     domain = "tetris"  # Process only tetris domain
     max_iterations = 3
@@ -234,7 +234,7 @@ Test files are available in `src/tests/`:
 
 ## Performance Notes
 
-- **Model Loading**: Requires significant memory (27GB for Phi-4, 202GB for Llama4)
+- **Model Loading**: Requires significant memory (16GB for Llama3 8B, 32GB for Phi-4 14B, 48GB+ for Gemma3 27B)
 - **GPU Acceleration**: Automatic CUDA detection and usage
 - **CPU Fallback**: Works on CPU but with slower inference
 - **Memory Management**: Efficient handling of large models and batch processing

@@ -51,10 +51,15 @@ Each of the selected probelms comes with a list of instances at different scale 
 
 ### Models
 
-This project utilizes two primary large language models to evaluate and compare their planning and reasoning capabilities. The selection of these two models allows for a comparative analysis between a large-scale model (Llama) and a highly efficient, smaller model (Phi), providing insights into how architectural differences affect emergent planning abilities.
+This project utilizes three state-of-the-art large language models to evaluate and compare their planning and reasoning capabilities. The selection provides a comprehensive analysis across different model sizes and architectures, from compact efficiency to high-capacity reasoning:
 
-- [Llama 4 (Scout 17B 16E Instruct)](https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct) needs an authorization both from Meta and Hugging Face to be downloaded.
-- [Phi 4](https://huggingface.co/microsoft/phi-4) is freely available directly on Hugging face.
+- **[Llama 3.1 8B Instruct](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct)** - Meta's efficient 8B parameter model, optimized for instruction following with good balance of speed and performance.
+
+- **[Phi-4](https://huggingface.co/microsoft/Phi-4)** - Microsoft's 14B parameter reasoning-optimized model, designed for complex problem-solving and planning tasks with superior reasoning capabilities.
+
+- **[Gemma-3 27B IT](https://huggingface.co/google/gemma-3-27b-it)** - Google's high-capacity 27B parameter model with advanced instruction-tuning, providing state-of-the-art performance on reasoning benchmarks.
+
+All models are freely available on Hugging Face (Llama 3.1 requires accepting Meta's license agreement).
 
 ### Tests
 

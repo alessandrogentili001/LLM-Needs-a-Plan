@@ -133,7 +133,7 @@ def main():
     # Model selection
     parser.add_argument(
         "--model",
-        choices=["llama4", "phi4", "auto"],
+        choices=["llama3", "phi4", "gemma3", "auto"],
         default="auto",
         help="Model type to use (auto-detect from path if 'auto')"
     )
