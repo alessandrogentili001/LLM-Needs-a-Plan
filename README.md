@@ -17,14 +17,9 @@ Access to Leonardo's computational capabilities enables us to perform experiment
 
 ### Repository Structure 
 
-### Papers
+### Literature Review
 
-Two papers inspired this work:
-
-- [Paper 1](assets/2407.11511v1.pdf)
-- [Paper 2](assets/2406.05572v2.pdf)
-
-We recommend the reading of the above mentioned papers in order to get a higher viewpoint on the whole methodology applied in this project.
+A bunch of papers inspired this work. You can have a look on them [here](assets/literature/).
 
 ### Leonardo
 
@@ -32,13 +27,14 @@ An official guide to the cluster login and setup is provided:
 
 - [Leonardo Guide](assets/Guida%20Leonardo.pdf)
 
-Additional step-by-step tutorials about the configuration, setup and usage of the Leonardo cluster are added in the following guides:
+Additional step-by-step tutorials about the configuration, setup and usage of the Leonardo cluster are in the `assets/tutorials` folder:
 
-- [Pre-Configuration Steps](assets/1.%20Pre%20Configuration.md)  
-- [Cluster Node Configuration](assets/2.%20Cluster%20Set%20Up.md)  
-- [First Job Submission](assets/3.%20Load%20Local%20Files%20Into%20The%20Cluster.md)  
-- [File Transfer Guide](assets/4.%20First%20Job%20Submission.md) 
-- [Work Directory And LLMs Download](assets/5.%20Work%20Directory%20And%20LLMs%20Download.md)
+- [Pre-Configuration Steps](assets/tutorials/1.%20Pre%20Configuration.md)  
+- [Cluster Node Configuration](assets/tutorials/2.%20Cluster%20Set%20Up.md)  
+- [First Job Submission](assets/tutorials/3.%20Load%20Local%20Files%20Into%20The%20Cluster.md)  
+- [File Transfer Guide](assets/tutorials/4.%20First%20Job%20Submission.md) 
+- [Work Directory And LLMs Download](assets/tutorials/5.%20Work%20Directory%20And%20LLMs%20Download.md)
+- [SLURM files explained](assets/tutorials/5.%20SLURM%20DFiles%20Explained.md)
 
 ### Problems
 
@@ -47,7 +43,7 @@ The planning problems, written in PPDL language, are taken from this [repository
 - [Tetris](https://github.com/potassco/pddl-instances/tree/master/ipc-2014/domains/tetris-sequential-satisficing)
 - [City Car](https://github.com/potassco/pddl-instances/tree/master/ipc-2014/domains/city-car-sequential-satisficing)
 
-Each of the selected probelms comes with a list of instances at different scale and complexity. 
+Each of the selected problems comes with a list of instances at different scale and complexity. You can have an in depth look by reading [this](src/data/README.md).
 
 ### Models
 
@@ -59,7 +55,9 @@ This project utilizes three state-of-the-art large language models to evaluate a
 
 - **[Gemma-3 27B IT](https://huggingface.co/google/gemma-3-27b-it)** - Google's high-capacity 27B parameter model with advanced instruction-tuning, providing state-of-the-art performance on reasoning benchmarks.
 
-All models are freely available on Hugging Face (Llama 3.1 requires accepting Meta's license agreement).
+- **[Kimi-Dev-72B](https://huggingface.co/moonshotai/Kimi-Dev-72B)** - MoonshotAI's 72B parameter model with advanced problem solving capabilities, providing state-of-the-art performance on SWE probelms benchmark.
+
+All models are freely available on Hugging Face (Llama 3.1 requires accepting Meta's license agreement). You can have an in depth view [here](src/models/README.md).
 
 ### Tests
 
@@ -67,7 +65,7 @@ Small scripts are added [here](src/tests) to test things on an ongoing basis.
 
 ### Validator
 
-You can find the planning validator [here](https://github.com/KCL-Planning/VAL?utm_source=chatgpt.com).
+You can find the planning validator description [here](https://github.com/KCL-Planning/VAL?utm_source=chatgpt.com).
 
 ## Getting Started
 
