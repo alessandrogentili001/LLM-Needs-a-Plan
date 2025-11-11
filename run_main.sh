@@ -1,13 +1,13 @@
 #!/bin/bash
-#SBATCH --account=IscrC_ArtLLMs
+#SBATCH --account=IscrC_VisLLMs
 #SBATCH --partition=boost_usr_prod
 #SBATCH --time=04:00:00
-#SBATCH --gres=gpu:4
+#SBATCH --gres=gpu:1
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=16
-#SBATCH --mem=120G
-#SBATCH --job-name=llm_pddl_experiment
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=64G
+#SBATCH --job-name=llama3_experiment
 #SBATCH --output=experiment_%j.out
 #SBATCH --error=experiment_%j.err
 
@@ -104,8 +104,8 @@ echo "Results will be saved to: src/results"
 # ====================================================================
 
 # Model configuration (choose one)
-MODEL_TYPE="auto"  # auto, llama4, phi4
-WEIGHTS_PATH="src/models/Llama4"  # Change to Phi4 if using phi4
+MODEL_TYPE="llama3"  # choose the model name 
+WEIGHTS_PATH="src/models/Llama3"  # wights directory for the choosen model 
 
 # Domain configuration  
 DOMAIN="tetris"  # Specific domain, or use --batch for all domains
@@ -114,7 +114,7 @@ PROBLEMS_PATH="src/data"
 # Generation parameters
 MAX_ITERATIONS=3
 MAX_TOKENS=5000
-TEMPERATURE=0.7
+TEMPERATURE=0.5
 
 # Features to enable
 ENABLE_COT=true        # Chain of Thought
