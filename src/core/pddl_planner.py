@@ -152,7 +152,10 @@ class PDDLPlanner:
                 **processing_kwargs
             )
         else:
-            # Process domains individually
+            # Process domains one at a time (with validation)
+            print("Processing domains one at a time with validation...")
+
+            # Initialize results structure
             self.results = {
                 "domain_results": [],
                 "overall_stats": {
@@ -162,16 +165,19 @@ class PDDLPlanner:
                 }
             }
             
+            # Loop over the domains
             for i, domain_data in enumerate(self.domains_data, 1):
                 print(f"\nProcessing domain {i}/{len(self.domains_data)}: {domain_data['domain_name']}")
                 print("-" * 40)
                 
+                # Process domain with validation
                 try:
                     domain_result = self.processor.process_domain_with_validation(
                         domain_data=domain_data,
                         **processing_kwargs
                     )
                     
+                    # Store domain results
                     self.results["domain_results"].append(domain_result)
                     
                     # Update overall statistics
@@ -201,30 +207,7 @@ class PDDLPlanner:
             str: Full path to the model directory
         """
         weights_path = Path(self.args.weights_path)
-        
-        # If path points to a specific model directory, use it directly
-        if (weights_path / "config.json").exists():
-            return str(weights_path)
-        
-        # If path is a models directory, try to find the right model
-        if weights_path.is_dir():
-            model_dirs = [d for d in weights_path.iterdir() if d.is_dir()]
-            
-            # If specific model type requested
-            if self.args.model != "auto":
-                target_model = self.args.model.lower()
-                for model_dir in model_dirs:
-                    if target_model in model_dir.name.lower():
-                        if (model_dir / "config.json").exists():
-                            print(f"  Selected model: {model_dir.name}")
-                            return str(model_dir)
-            
-            # Auto-select first available model
-            for model_dir in model_dirs:
-                if (model_dir / "config.json").exists():
-                    print(f"  Auto-selected model: {model_dir.name}")
-                    return str(model_dir)
-        
+                
         # Fallback to original path
         return str(weights_path)
 

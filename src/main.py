@@ -17,8 +17,8 @@ src_path = Path(__file__).parent
 sys.path.insert(0, str(src_path))
 
 # Import core modules
-from core.pddl_planner import PDDLPlanner   # Comes with other core modules
-from utils.configuration import load_config # config.yml
+from core.pddl_planner import PDDLPlanner   # Comes with other core modules FileManager, ModelManager, PDDLProcessor
+from utils.configuration import load_config # config.yml file loader
 
 
 def main():
@@ -40,43 +40,43 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     
-    # Path arguments
+    # Path arguments: Problems, Models, Outputs
     parser.add_argument(
         "--problems_path",
-        default=config.get("PROBLEMS_PATH", "src/data"),
+        default=config.get("PROBLEMS_PATH", "src/data"),       # Problems path 
         help="Path to PDDL problem files directory"
     )
     parser.add_argument(
         "--weights_path", 
-        default=config.get("MODEL_PATH", "src/models"),
+        default=config.get("MODEL_PATH", "src/models"),        # Model weights path
         help="Path to model weights directory"
     )
     parser.add_argument(
         "--output_dir",
         default=config.get("MODEL_OUTPUT", "src/results"),
-        help="Directory to save generated plans and outputs"
+        help="Directory to save generated plans and outputs"   # Output directory
     )
     
-    # Processing options
+    # Processing options: Batch, Domain, Iterations
     parser.add_argument(
         "--batch",
-        action="store_true",
-        default=False,
+        action="store_true",                                    
+        default=False,                                         # Process all domains   
         help="Process all domains in batch mode"
     )
     parser.add_argument(
         "--domain",
-        type=str,
-        help="Process only the specified domain (e.g., 'tetris', 'logistics')"
+        type=str,                                              # Specific domain to process
+        help="Process only the specified domain"
     )
     parser.add_argument(
         "--max_iterations",
-        type=int,
+        type=int,                                              # Max validation iterations per problem
         default=1,
         help="Maximum validation iterations per problem"
     )
     
-    # Model generation options
+    # Model generation options: Sampling, Temperature, Max Tokens
     parser.add_argument(
         "--sampling",
         action="store_true", 
@@ -92,11 +92,11 @@ def main():
     parser.add_argument(
         "--max_tokens",
         type=int,
-        default=5000,
+        default=1024,
         help="Maximum tokens to generate per response"
     )
     
-    # Prompt options
+    # Prompt options: System prompt, CoT
     parser.add_argument(
         "--add_system_prompt",
         action="store_true",
@@ -106,15 +106,15 @@ def main():
     parser.add_argument(
         "--cot", 
         action="store_true",
-        default=False,
+        default=True,
         help="Enable Chain of Thought prompting"
     )
     
-    # Output options
+    # Output options: Include prompt, Skip special tokens
     parser.add_argument(
         "--include_prompt",
         action="store_true",
-        default=False,
+        default=True,
         help="Include the prompt in the output files"
     )
     parser.add_argument(
@@ -126,7 +126,7 @@ def main():
     parser.add_argument(
         "--verbose",
         action="store_true",
-        default=False,
+        default=True,
         help="Enable verbose output"
     )
     

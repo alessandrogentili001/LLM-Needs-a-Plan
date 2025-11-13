@@ -11,6 +11,13 @@ from .prompts import (
     generic_pddl_prompt,
     chain_of_thought_prompt,
     validation_feedback_prompt,
+    tetris_chain_of_thought,
+    tetris_validation_feedback,
+    citycar_problem_prompt,
+    citycar_chain_of_thought,
+    citycar_validation_feedback,
+    add_examples_to_prompt,
+    add_constraints_to_prompt,
     optimization_prompt,
     incremental_planning_prompt
 )
@@ -21,6 +28,13 @@ __all__ = [
     'generic_pddl_prompt',
     'chain_of_thought_prompt',
     'validation_feedback_prompt',
+    'tetris_chain_of_thought',
+    'tetris_validation_feedback',
+    'citycar_problem_prompt',
+    'citycar_chain_of_thought',
+    'citycar_validation_feedback',
+    'add_examples_to_prompt',
+    'add_constraints_to_prompt',
     'optimization_prompt',
     'incremental_planning_prompt'
 ]

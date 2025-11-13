@@ -8,8 +8,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --job-name=llama3_experiment
-#SBATCH --output=experiment_%j.out
-#SBATCH --error=experiment_%j.err
+#SBATCH --output=llama3_%j.out
+#SBATCH --error=llama3_%j.err
 
 # ====================================================================
 # LLM-Needs-a-Plan Production Experiment
@@ -104,29 +104,25 @@ echo "Results will be saved to: src/results"
 # ====================================================================
 
 # Model configuration (choose one)
-MODEL_TYPE="llama3"  # choose the model name 
 WEIGHTS_PATH="src/models/Llama3"  # wights directory for the choosen model 
 
 # Domain configuration  
-DOMAIN="tetris"  # Specific domain, or use --batch for all domains
 PROBLEMS_PATH="src/data"
 
 # Generation parameters
-MAX_ITERATIONS=3
+MAX_ITERATIONS=1
 MAX_TOKENS=5000
-TEMPERATURE=0.5
+TEMPERATURE=0.1
 
 # Features to enable
-ENABLE_COT=true        # Chain of Thought
-ENABLE_SAMPLING=false  # Sampling vs greedy
+ENABLE_COT=false        # Chain of Thought
+ENABLE_SAMPLING=true   # Sampling vs greedy
 VERBOSE=true           # Detailed output
 
 echo "=========================================="
 echo "Experiment Configuration"
 echo "=========================================="
-echo "Model Type: $MODEL_TYPE"
 echo "Weights Path: $WEIGHTS_PATH"
-echo "Domain: $DOMAIN"
 echo "Problems Path: $PROBLEMS_PATH"
 echo "Max Iterations: $MAX_ITERATIONS"
 echo "Max Tokens: $MAX_TOKENS"
@@ -137,22 +133,25 @@ echo "Verbose Output: $VERBOSE"
 echo "=========================================="
 
 # Build command arguments
-MAIN_ARGS="--problems_path $PROBLEMS_PATH --weights_path $WEIGHTS_PATH --model $MODEL_TYPE"
-MAIN_ARGS="$MAIN_ARGS --domain $DOMAIN --max_iterations $MAX_ITERATIONS --max_tokens $MAX_TOKENS"
+MAIN_ARGS="--problems_path $PROBLEMS_PATH --weights_path $WEIGHTS_PATH"
+MAIN_ARGS="$MAIN_ARGS --max_iterations $MAX_ITERATIONS --max_tokens $MAX_TOKENS"
 
 if [ "$ENABLE_COT" = true ]; then
     MAIN_ARGS="$MAIN_ARGS --cot"
 fi
 
 if [ "$ENABLE_SAMPLING" = true ]; then
+    # --sampling is a boolean flag in the CLI; pass it without a value
     MAIN_ARGS="$MAIN_ARGS --sampling --temperature $TEMPERATURE"
 fi
 
 if [ "$VERBOSE" = true ]; then
+    # --verbose is a boolean flag; pass it alone
     MAIN_ARGS="$MAIN_ARGS --verbose"
 fi
 
 # Add output file inclusion for analysis
+## --include_prompt is a boolean flag; pass it alone to enable including the prompt in output
 MAIN_ARGS="$MAIN_ARGS --include_prompt"
 
 echo "Full command: python src/main.py $MAIN_ARGS"

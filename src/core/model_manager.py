@@ -10,7 +10,7 @@ import sys
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, logging
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any, Callable
 
 # Import utilities with proper error handling
 try:
@@ -36,8 +36,7 @@ class ModelManager:
     Manages loading and interaction with large language models.
     
     Supports:
-    - Llama 4 models (with gating/authorization)
-    - Phi-4 models (public access)
+    - LLMs selection and loading
     - Dynamic model detection based on path
     - GPU/CPU device management
     - Response generation with various parameters
@@ -67,14 +66,18 @@ class ModelManager:
             weights_path (str): Path to model weights
             
         Returns:
-            str: Model type ('phi4', 'llama4', 'unknown')
+            str: Model type
         """
         path_lower = weights_path.lower()
         
-        if 'phi' in path_lower or 'phi-4' in path_lower or 'phi4' in path_lower:
+        if 'phi' in path_lower:
             return 'phi4'
-        elif 'llama' in path_lower or 'llama-4' in path_lower or 'llama4' in path_lower:
-            return 'llama4'
+        elif 'llama' in path_lower:
+            return 'llama3'
+        elif 'gemma' in path_lower:
+            return 'gemma3'
+        elif 'kimi' in path_lower:
+            return 'kimi'
         else:
             return 'unknown'
 
@@ -118,58 +121,31 @@ class ModelManager:
                 "trust_remote_code": True,
             }
             
-            # Configure device mapping based on available GPUs
-            if gpu_count == 0:
-                model_kwargs["device_map"] = "cpu"
-                print("Using CPU (no GPUs available)")
-            elif gpu_count == 1:
+            # Configure device mapping based on available GPUs (x1-4 Nvidia X100 64GB each)
+            if gpu_count > 0:
                 model_kwargs["device_map"] = "auto"
                 print("Using single GPU with automatic mapping")
             else:
-                # Use aggressive memory management for large models like Llama4
-                if self.model_type == 'llama4':
-                    # More aggressive memory limits - reserve 15GB per GPU for inference
-                    total_memory_per_gpu = 64  # A100 has ~64GB
-                    reserved_for_inference = 15  # Increase reservation
-                    available_per_gpu = total_memory_per_gpu - reserved_for_inference
-                    
-                    model_kwargs["device_map"] = "balanced_low_0"
-                    model_kwargs["max_memory"] = {i: f"{available_per_gpu}GB" for i in range(gpu_count)}
-                    model_kwargs["low_cpu_mem_usage"] = True
-                    model_kwargs["torch_dtype"] = torch.float16  # Use fp16 instead of bfloat16
-                    
-                    print(f"Using aggressive memory setup: {gpu_count} GPUs, {available_per_gpu}GB per GPU, {reserved_for_inference}GB reserved")
-                else:
-                    model_kwargs["device_map"] = "auto"  # Standard auto mapping for other models
-                    print(f"Using multi-GPU setup with {gpu_count} GPUs (automatic load balancing)")
-            
-            # Adjust loading parameters based on model type
-            #if self.model_type == 'phi4':
-            #    model_kwargs.update({
-            #        "attn_implementation": "flash_attention_2" if torch.cuda.is_available() else None
-            #    })
+                model_kwargs["device_map"] = {"": self.device}
+                print("Using CPU for model management")
             
             # Load model
             self.model = AutoModelForCausalLM.from_pretrained(
                 self.weights_path,
                 **{k: v for k, v in model_kwargs.items() if v is not None}
             )
+            print(f"Model loaded onto {self.device}")
             
             # Load tokenizer
-            tokenizer_kwargs = {
-                "padding_side": "left",  # For batch generation
-                "trust_remote_code": True,
-            }
-            
+            # Tokenizer kwargs may be model-specific; default to empty dict to
+            # avoid NameError when not provided.
+            tokenizer_kwargs = globals().get('tokenizer_kwargs', {}) or {}
             self.tokenizer = AutoTokenizer.from_pretrained(
                 self.weights_path,
                 **tokenizer_kwargs
             )
-            
-            # Set pad token if not exists
-            if self.tokenizer.pad_token is None:
-                self.tokenizer.pad_token = self.tokenizer.eos_token
-            
+            print(f"Tokenizer loaded onto {self.device}")
+                        
             print(f"Model loaded successfully")
             print(f"Model parameters: ~{sum(p.numel() for p in self.model.parameters()) / 1e9:.1f}B")
             
@@ -177,22 +153,18 @@ class ModelManager:
             
         except Exception as e:
             print(f"Error loading model: {e}")
-            print(f"Make sure:")
-            print(f"  1. Path exists: {os.path.exists(self.weights_path)}")
-            print(f"  2. You have access to the model")
-            print(f"  3. Sufficient GPU memory available")
             sys.exit(1)
 
     def generate_response(
         self,
         prompt: str,
-        max_tokens: int = 5000,
-        add_system_prompt: bool = True,
-        sampling: bool = False,
-        temperature: float = 0.6,
-        top_k: int = 10,
-        include_prompt: bool = True,
-        skip_special_tokens: bool = True,
+        max_tokens: int,
+        add_system_prompt: bool,
+        sampling: bool,
+        temperature: float,
+        top_k: int,
+        include_prompt: bool,
+        skip_special_tokens: bool,
     ) -> str:
         """
         Generate a response using the loaded model.
@@ -219,88 +191,101 @@ class ModelManager:
         # Prepare messages
         if add_system_prompt:
             messages = [
-                {"role": "system", "content": system_prompt_pddl},
-                {"role": "user", "content": prompt},
+                {"role": "system", "content": system_prompt_pddl}, # system prompt 
+                {"role": "user", "content": prompt},               # user prompt
             ]
         else:
             messages = [{"role": "user", "content": prompt}]
 
-        # Format messages using chat template
+        # Format messages using chat template when available; otherwise fall back
         try:
             formatted_message = self.tokenizer.apply_chat_template(
-                messages, 
-                tokenize=False, 
-                add_generation_prompt=True
+                messages,
+                tokenize=False,
+                add_generation_prompt=True,
             )
-        except Exception as e:
-            print(f"Warning: Chat template failed ({e}), using direct prompt")
+        except Exception:
+            # Some tokenizers/models don't implement apply_chat_template
             formatted_message = f"{system_prompt_pddl}\n\nUser: {prompt}\n\nAssistant:" if add_system_prompt else prompt
 
-        # Tokenize input
+        # Tokenize input (respect tokenizer limits when available)
+        model_max = getattr(self.tokenizer, "model_max_length", None) or 2048
+        max_input_len = min(model_max, 4096)
         inputs = self.tokenizer(
-            formatted_message, 
-            return_tensors="pt", 
+            formatted_message,
+            return_tensors="pt",
             truncation=True,
-            max_length=4000  # Leave room for generation
-        ).to(self.model.device)
+            max_length=max_input_len,
+        )
 
-        # Generation parameters with memory optimization
+        # Move inputs to the model device. Use model parameters to find device
+        try:
+            model_device = next(self.model.parameters()).device
+        except Exception:
+            model_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        inputs = {k: v.to(model_device) for k, v in inputs.items()}
+
+        # Generation parameters
         generation_config = {
-            "max_new_tokens": max_tokens,
-            "do_sample": sampling,
+            "max_new_tokens": int(max_tokens),
+            "do_sample": bool(sampling),
             "eos_token_id": self.tokenizer.eos_token_id,
             "pad_token_id": self.tokenizer.pad_token_id,
-            "use_cache": False if self.model_type == 'llama4' else True,  # Disable cache for Llama4 to save memory
-            "num_beams": 1,  # No beam search to save memory
+            "use_cache": True,
         }
-        
-        # Handle sampling vs deterministic generation properly
+
         if sampling and temperature > 0:
             generation_config.update({
-                "temperature": temperature,
-                "top_k": top_k,
+                "temperature": float(temperature),
+                "top_k": int(top_k),
                 "top_p": 0.9,
             })
-        else:
-            # Deterministic generation - clean config to avoid warnings
-            generation_config["do_sample"] = False
-            # Don't set temperature, top_p, top_k for deterministic generation
 
-        # Generate response with memory management
+        # Run generation and handle OOMs cleanly
         try:
-            # Clear cache before generation for large models
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-            
             with torch.no_grad():
                 outputs = self.model.generate(
                     **inputs,
-                    **generation_config
+                    **generation_config,
                 )
 
-            # Extract and decode response
-            if include_prompt:
-                response_tokens = outputs[0]
+            # outputs is a tensor (batch, seq_len) or a list-like
+            if isinstance(outputs, (list, tuple)):
+                out_tensor = outputs[0]
             else:
-                response_tokens = outputs[0][inputs["input_ids"].shape[1]:]
+                out_tensor = outputs
+
+            # Take first batch
+            first = out_tensor[0]
+
+            if include_prompt:
+                response_tokens = first
+            else:
+                input_len = inputs["input_ids"].shape[1]
+                response_tokens = first[input_len:]
 
             response = self.tokenizer.decode(
-                response_tokens, 
-                skip_special_tokens=skip_special_tokens
+                response_tokens,
+                skip_special_tokens=skip_special_tokens,
             )
-            
-            # Clean up GPU memory after generation
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-            
+
             return response.strip()
-            
-        except Exception as e:
-            print(f"Error during generation: {e}")
-            # Clean up on error too
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-            return f"Generation failed: {str(e)}"
+
+        except RuntimeError as e:
+            # OOM handling
+            if "out of memory" in str(e).lower():
+                msg = (
+                    "CUDA out of memory during generation. "
+                    "Try reducing --max_tokens, use a smaller model, or enable model parallelism."
+                )
+                print(msg)
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                return f"Generation failed: {msg}"
+            else:
+                print(f"Error during generation: {e}")
+                return f"Generation failed: {str(e)}"
 
     def iterative_planning_with_validation(
         self,
@@ -308,6 +293,8 @@ class ModelManager:
         problem_path: str,
         initial_prompt: str,
         max_iterations: int = 3,
+        add_system_prompt: bool = True,
+        validation_feedback_fn: Optional[Callable[[str, str, str], str]] = None,
         **generation_kwargs
     ) -> Tuple[str, int, bool]:
         """
@@ -323,28 +310,70 @@ class ModelManager:
         Returns:
             Tuple[str, int, bool]: (final_response, iterations_used, is_valid)
         """
-        messages = [
-            {"role": "system", "content": system_prompt_pddl},
-            {"role": "user", "content": initial_prompt}
-        ]
+        # Respect whether caller wants a system prompt included.
+        if add_system_prompt:
+            messages = [
+                {"role": "system", "content": system_prompt_pddl},
+                {"role": "user", "content": initial_prompt}
+            ]
+        else:
+            messages = [{"role": "user", "content": initial_prompt}]
         
         for iteration in range(max_iterations):
             print(f"Planning iteration {iteration + 1}/{max_iterations}")
             
             # Format current conversation
             conversation_text = self._format_conversation(messages)
+
+            # --- DEBUG LOGGING: write the exact conversation sent to the model ---
+            try:
+                # Write debug logs into the repository root `debug_prompts/` so they
+                # are easy to find regardless of the current working directory used
+                # by batch/cluster jobs.
+                repo_root = Path(__file__).resolve().parents[2]
+                dbg_dir = repo_root / "debug_prompts"
+                print(f"[DEBUG] Attempting to write debug prompts to: {dbg_dir}")
+                dbg_dir.mkdir(parents=True, exist_ok=True)
+                problem_base = Path(problem_path).stem if problem_path else "unknown_problem"
+                convo_file = dbg_dir / f"{problem_base}_conversation_iter{iteration+1}.txt"
+                convo_file.write_text(conversation_text, encoding="utf-8")
+            except Exception as e:
+                # Do not fail the planning loop due to logging issues but surface debug info
+                print(f"[DEBUG] Failed to write conversation log: {e}")
+                pass
             
             # Generate response
             # Remove conflicting arguments from generation_kwargs
-            filtered_kwargs = {k: v for k, v in generation_kwargs.items() 
-                             if k not in ['add_system_prompt', 'include_prompt']}
-            
+            filtered_kwargs = {k: v for k, v in generation_kwargs.items()
+                               if k not in ['add_system_prompt', 'include_prompt']}
+
+            # Ensure required generation parameters exist and provide safe defaults
+            defaults = {
+                "max_tokens": 5000,
+                "sampling": False,
+                "temperature": 0.0,
+                "top_k": 50,
+                "skip_special_tokens": True,
+            }
+            for k, v in defaults.items():
+                filtered_kwargs.setdefault(k, v)
+
             response = self.generate_response(
                 conversation_text,
                 add_system_prompt=False,  # Already in conversation
                 include_prompt=False,
                 **filtered_kwargs
             )
+
+            # Save raw response for debugging
+            try:
+                repo_root = Path(__file__).resolve().parents[2]
+                dbg_dir = repo_root / "debug_prompts"
+                raw_file = dbg_dir / f"{problem_base}_raw_response_iter{iteration+1}.txt"
+                raw_file.write_text(response, encoding="utf-8")
+            except Exception as e:
+                print(f"[DEBUG] Failed to write raw response log: {e}")
+                pass
             
             # Extract and validate plan
             formatted_response = formatter(response, include_reasoning=True)
@@ -360,23 +389,36 @@ class ModelManager:
             
             # Create temporary plan text for validation
             plan_text = "\n".join(plan_actions)
-            
+
             # Validate plan
             validation_result = validate_plan_from_text(domain_path, problem_path, plan_text)
-            
+
             if validation_result.get("valid", False):
                 print(f"Valid plan found in {iteration + 1} iterations")
                 return response, iteration + 1, True
-            
-            # Plan is invalid, provide feedback
+
+            # Plan is invalid, provide structured feedback using either the provided
+            # domain-specific feedback function or the generic validation prompt.
             error_msg = validation_result.get("error", "Plan validation failed")
-            feedback = f"The plan is invalid. Error: {error_msg}. Please provide a corrected plan."
-            
+
+            if validation_feedback_fn is not None:
+                try:
+                    feedback = validation_feedback_fn(initial_prompt, plan_text, error_msg)
+                except Exception:
+                    feedback = f"The plan is invalid. Error: {error_msg}. Please provide a corrected plan."
+            else:
+                try:
+                    from ..prompts.prompts import validation_feedback_prompt
+
+                    feedback = validation_feedback_prompt(initial_prompt, plan_text, error_msg)
+                except Exception:
+                    feedback = f"The plan is invalid. Error: {error_msg}. Please provide a corrected plan."
+
             messages.extend([
                 {"role": "assistant", "content": response},
                 {"role": "user", "content": feedback}
             ])
-            
+
             print(f"Invalid plan (iteration {iteration + 1}): {error_msg}")
         
         print(f"No valid plan found after {max_iterations} iterations")

@@ -16,10 +16,14 @@ try:
     from .file_manager import FileManager
     from .model_manager import ModelManager
     from ..prompts.prompts import (
-        system_prompt_pddl,
-        tetris_problem_prompt,
-        generic_pddl_prompt,
-        chain_of_thought_prompt
+            system_prompt_pddl,
+            tetris_problem_prompt,
+            generic_pddl_prompt,
+            chain_of_thought_prompt,
+            citycar_problem_prompt,
+            add_examples_to_prompt,
+            add_constraints_to_prompt,
+            validation_feedback_prompt
     )
 except ImportError:
     # Fallback imports for when run directly
@@ -33,7 +37,11 @@ except ImportError:
         system_prompt_pddl,
         tetris_problem_prompt,
         generic_pddl_prompt,
-        chain_of_thought_prompt
+        chain_of_thought_prompt,
+        citycar_problem_prompt,
+        validation_feedback_prompt,
+        add_examples_to_prompt,
+        add_constraints_to_prompt
     )
 
 
@@ -197,21 +205,35 @@ class PDDLProcessor:
         if problem_text is None:
             raise ValueError(f"Failed to read problem file: {problem_path}")
         
-        # Create appropriate prompt based on domain
-        prompt = self._create_domain_prompt(domain_name, domain_text, problem_text)
-        
-        # Add Chain of Thought if requested
-        if enable_cot:
-            prompt = chain_of_thought_prompt(domain_text, problem_text)
-        
-        # Generate plan with validation
+        # Build an optimized, domain-specific prompt using the internal pipeline
+        prompt_text = self._build_prompt(
+            domain_name=domain_name,
+            domain_text=domain_text,
+            problem_text=problem_text,
+            enable_cot=enable_cot
+        )
+
+        # --- DEBUG: print the exact prompt we will send to the model so cluster
+        # jobs capture it in stdout/stderr logs (easier to inspect than files).
+        try:
+            print(f"\n---PROMPT SENT TO MODEL for {problem_name}---\n{prompt_text}\n---END PROMPT---\n")
+        except Exception:
+            # non-fatal if printing fails
+            pass
+
+        # Select domain-specific validation feedback function when available
+        validation_feedback_fn = self._get_validation_feedback_fn(domain_name)
+
+        # Generate plan with validation. generation_kwargs already forwarded from caller
         response_text, iterations, is_valid = self.model_manager.iterative_planning_with_validation(
             domain_path=domain_path,
             problem_path=problem_path,
-            initial_prompt=prompt,
+            initial_prompt=prompt_text,
             max_iterations=max_iterations,
             add_system_prompt=add_system_prompt,
-            sampling=sampling
+            validation_feedback_fn=validation_feedback_fn,
+            sampling=sampling,
+            **generation_kwargs
         )
         
         # Add processing metadata to response
@@ -240,7 +262,7 @@ class PDDLProcessor:
             "cot_enabled": enable_cot
         }
 
-    def _create_domain_prompt(self, domain_name: str, domain_text: str, problem_text: str) -> str:
+    def _create_domain_prompt(self, domain_name: str, domain_text: str, problem_text: str, include_examples: bool = True) -> str:
         """
         Create appropriate prompt based on domain type.
 
@@ -252,14 +274,152 @@ class PDDLProcessor:
         Returns:
             str: Formatted prompt for the domain
         """
+        # Keep legacy domain prompt selection but prefer explicit domain-specific functions
         domain_lower = domain_name.lower()
-        
-        # Use domain-specific prompts when available
+
+        # Prefer domain-specific builders but allow caller to decide whether the
+        # domain builder should include few-shot examples (we often add examples
+        # later in a centralized place to avoid duplication).
         if "tetris" in domain_lower:
-            return tetris_problem_prompt(domain_text, problem_text)
+            print(f"Using Tetris prompt for domain: {domain_name}")
+            return tetris_problem_prompt(domain_text, problem_text, include_examples=include_examples)
+        if "citycar" in domain_lower:
+            print(f"Using CityCar prompt for domain: {domain_name}")
+            return citycar_problem_prompt(domain_text, problem_text, include_examples=include_examples)
+
+        # Default to generic prompt
+        print(f"Using generic PDDL prompt for domain: {domain_name}")
+        return generic_pddl_prompt(domain_text, problem_text)
+
+    def _build_prompt(
+        self,
+        domain_name: str,
+        domain_text: str,
+        problem_text: str,
+        enable_cot: bool = False,
+        examples: Optional[List[str]] = None,    # few-shot examples
+        constraints: Optional[List[str]] = None, # additional constraints
+    ) -> str:
+        """
+        Build a consolidated prompt for the planner.
+
+        Returns a string suitable to pass as the initial user prompt to the model manager.
+        The pipeline selects a domain-specific base prompt, optionally appends CoT instructions,
+        example plan(s), and additional constraints.
+        """
+        # Truncate domain/problem texts to a safe length before building prompts.
+        domain_safe = domain_text # self._safely_truncate_text(domain_text)
+        problem_safe = problem_text # self._safely_truncate_text(problem_text)
+
+        # Build base prompt using domain-specific builder but avoid allowing it to
+        # inject examples on its own; we add examples in a central place below to
+        # avoid duplication and keep the pipeline predictable.
+        # Prepend a short, high-priority instruction that must always be seen by
+        # the model. This protects against truncation removing essential output
+        # constraints and prevents the model from asking for missing input.
+        top_instruction = (
+            "OUTPUT ONLY: Provide the final PDDL action sequence, one action per line. "
+            "Do NOT ask clarifying questions or request additional information — use the DOMAIN and PROBLEM definitions provided."
+        )
+
+        base = self._create_domain_prompt(domain_name, domain_safe, problem_safe, include_examples=False)
+        base = top_instruction + "\n\n" + base
+
+        # Examples: prefer explicit `examples` passed by caller; otherwise try to
+        # load canonical few-shot examples for the domain (lazy).
+        if not examples:
+            examples = self._load_domain_examples(domain_name)
+
+        if examples:
+            try:
+                from ..prompts.prompts import add_examples_to_prompt
+
+                base = add_examples_to_prompt(base, examples)
+            except Exception:
+                base += "\n\n" + "\n\n".join(examples)
+
+        # Add custom constraints if provided
+        if constraints:
+            try:
+                base = add_constraints_to_prompt(base, constraints)
+            except Exception:
+                base += "\n\nAdditional constraints:\n" + "\n".join(constraints)
         else:
-            # Use generic PDDL prompt for other domains
-            return generic_pddl_prompt(domain_text, problem_text)
+            pass # no constraints to add
+
+        # Add chain-of-thought instructions if requested (append after plan-only to keep separation)
+        if enable_cot:
+            try:
+                # Prefer domain-specific CoT wrappers when available
+                dn = domain_name.lower()
+                if "tetris" in dn:
+                    from ..prompts.prompts import tetris_chain_of_thought as _cot_fn
+                elif "citycar" in dn:
+                    from ..prompts.prompts import citycar_chain_of_thought as _cot_fn
+                else:
+                    from ..prompts.prompts import chain_of_thought_prompt as _cot_fn
+
+                cot_text = _cot_fn(domain_safe, problem_safe) # Load domain-specific CoT if available
+                base = base + "\n\n" + cot_text               # Add CoT instructions to the base prompt
+            except Exception:
+                base = base + "\n\n" + "Please think step by step about the plan, then output only the final action sequence."
+
+        return base
+
+    def _safely_truncate_text(self, text: str, max_chars: int = 4000) -> str:
+        """
+        Truncate long domain/problem texts to a safe character length. This is a
+        light-weight guard against exceeding tokenizer/model input limits. It
+        prefers to keep the head and tail of the text where possible.
+        """
+        if not text:
+            return ""
+        if len(text) <= max_chars:
+            return text
+
+        head = text[: max_chars // 2]
+        tail = text[- (max_chars // 2) :]
+        return head + "\n\n...TRUNCATED...\n\n" + tail
+
+    def _load_domain_examples(self, domain_name: str) -> Optional[List[str]]:
+        """
+        Try to lazy-load domain few-shot examples from `src.prompts.prompts`.
+        Returns None if examples are not available.
+        """
+        try:
+            from ..prompts import prompts as _prompts_mod
+
+            dn = domain_name.lower()
+            if "tetris" in dn and hasattr(_prompts_mod, '_format_tetris_examples'):
+                return _prompts_mod._format_tetris_examples()
+            if "citycar" in dn and hasattr(_prompts_mod, '_format_citycar_examples'):
+                return _prompts_mod._format_citycar_examples()
+        except Exception:
+            return None
+
+        return None
+
+    def _get_validation_feedback_fn(self, domain_name: str):
+        """
+        Return a domain-specific validation feedback function when available.
+        """
+        dn = domain_name.lower()
+        if "tetris" in dn:
+            try:
+                from ..prompts.prompts import tetris_validation_feedback
+
+                return tetris_validation_feedback
+            except Exception:
+                return None
+        if "citycar" in dn:
+            try:
+                from ..prompts.prompts import citycar_validation_feedback
+
+                return citycar_validation_feedback
+            except Exception:
+                return None
+
+        return None
 
     def batch_process_domains(
         self,
