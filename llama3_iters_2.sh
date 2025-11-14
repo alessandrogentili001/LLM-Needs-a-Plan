@@ -7,9 +7,9 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
-#SBATCH --job-name=phi4_experiment
-#SBATCH --output=phi4_%j.out
-#SBATCH --error=phi4_%j.err
+#SBATCH --job-name=llama3_iters_2
+#SBATCH --output=llama3_iters_2.out
+#SBATCH --error=llama3_iters_2.err
 
 # ====================================================================
 # LLM-Needs-a-Plan Production Experiment
@@ -95,8 +95,8 @@ if torch.cuda.is_available():
 "
 
 # Create results directory
-mkdir -p src/results/phi4
-echo "Results will be saved to: src/results/phi4"
+mkdir -p src/results/llama3
+echo "Results will be saved to: src/results/llama3"
 
 # ====================================================================
 # EXPERIMENT CONFIGURATION
@@ -104,13 +104,13 @@ echo "Results will be saved to: src/results/phi4"
 # ====================================================================
 
 # Model configuration (choose one)
-WEIGHTS_PATH="src/models/Phi4"  # wights directory for the choosen model 
+WEIGHTS_PATH="src/models/Llama3"  # wights directory for the choosen model 
 
 # Domain configuration  
 PROBLEMS_PATH="src/data"
 
 # Generation parameters
-MAX_ITERATIONS=1
+MAX_ITERATIONS=2
 MAX_TOKENS=5000
 TEMPERATURE=0.1
 

@@ -2,14 +2,14 @@
 #SBATCH --account=IscrC_VisLLMs
 #SBATCH --partition=boost_usr_prod
 #SBATCH --time=04:00:00
-#SBATCH --gres=gpu:2
+#SBATCH --gres=gpu:4
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
-#SBATCH --job-name=gemma_experiment
-#SBATCH --output=gemma_%j.out
-#SBATCH --error=gemma_%j.err
+#SBATCH --job-name=kimi_iters_2
+#SBATCH --output=kimi_iters_2.out
+#SBATCH --error=kimi_iters_2.err
 
 # ====================================================================
 # LLM-Needs-a-Plan Production Experiment
@@ -95,8 +95,8 @@ if torch.cuda.is_available():
 "
 
 # Create results directory
-mkdir -p src/results/gemma3
-echo "Results will be saved to: src/results/gemma3"
+mkdir -p src/results/kimi
+echo "Results will be saved to: src/results/kimi"
 
 # ====================================================================
 # EXPERIMENT CONFIGURATION
@@ -104,13 +104,13 @@ echo "Results will be saved to: src/results/gemma3"
 # ====================================================================
 
 # Model configuration (choose one)
-WEIGHTS_PATH="src/models/Gemma3"  # wights directory for the choosen model 
+WEIGHTS_PATH="src/models/Kimi"  # wights directory for the choosen model 
 
 # Domain configuration  
 PROBLEMS_PATH="src/data"
 
 # Generation parameters
-MAX_ITERATIONS=1
+MAX_ITERATIONS=2
 MAX_TOKENS=5000
 TEMPERATURE=0.1
 

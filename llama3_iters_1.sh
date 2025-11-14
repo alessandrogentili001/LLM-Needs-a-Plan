@@ -2,14 +2,14 @@
 #SBATCH --account=IscrC_VisLLMs
 #SBATCH --partition=boost_usr_prod
 #SBATCH --time=04:00:00
-#SBATCH --gres=gpu:4
+#SBATCH --gres=gpu:1
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
-#SBATCH --job-name=kimi_experiment
-#SBATCH --output=kimi_%j.out
-#SBATCH --error=kimi_%j.err
+#SBATCH --job-name=llama3_iters_1
+#SBATCH --output=llama3_iters_1.out
+#SBATCH --error=llama3_iters_1.err
 
 # ====================================================================
 # LLM-Needs-a-Plan Production Experiment
@@ -95,8 +95,8 @@ if torch.cuda.is_available():
 "
 
 # Create results directory
-mkdir -p src/results/kimi
-echo "Results will be saved to: src/results/kimi"
+mkdir -p src/results/llama3
+echo "Results will be saved to: src/results/llama3"
 
 # ====================================================================
 # EXPERIMENT CONFIGURATION
@@ -104,7 +104,7 @@ echo "Results will be saved to: src/results/kimi"
 # ====================================================================
 
 # Model configuration (choose one)
-WEIGHTS_PATH="src/models/Kimi"  # wights directory for the choosen model 
+WEIGHTS_PATH="src/models/Llama3"  # wights directory for the choosen model 
 
 # Domain configuration  
 PROBLEMS_PATH="src/data"
