@@ -41,6 +41,7 @@ def chain_of_thought_prompt(domain: str, problem: str) -> str:
     """
     return (
         "Let's reason step-by-step, about the domain and problem descriptions provided, to construct the optimal plan.\n"
+        "Output ONLY the corrected action sequence (one action per line)."
     )
 
 # Utilities
@@ -181,7 +182,7 @@ def tetris_validation_feedback(original_prompt: str, plan: str, validation_error
     return (
         "Your previous Tetris plan did not validate correctly.\n\n"
         "ORIGINAL PROBLEM:\n" + original_prompt + "\n\n"
-        "YOUR PLAN:\n" + plan + "\n\n"
+        "YOUR GENERATED PLAN:\n" + plan + "\n\n"
         "VALIDATION ERROR:\n" + validation_error + "\n\n"
         "Notes:\n- Check that moved pieces exist and preconditions (e.g., free target cells) are satisfied.\n"
         "- Ensure rotations are valid and do not collide with other pieces.\n\n"

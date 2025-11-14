@@ -213,7 +213,7 @@ class PDDLProcessor:
             enable_cot=enable_cot
         )
 
-        # --- DEBUG: print the exact prompt we will send to the model so cluster
+        # --- DEBUG: print the exact prompt we will send to the model
         # jobs capture it in stdout/stderr logs (easier to inspect than files).
         #try:
         #    print(f"\n---PROMPT SENT TO MODEL for {problem_name}---\n{prompt_text}\n---END PROMPT---\n")
