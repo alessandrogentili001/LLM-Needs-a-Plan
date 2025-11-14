@@ -2,7 +2,7 @@
 #SBATCH --account=IscrC_VisLLMs
 #SBATCH --partition=boost_usr_prod
 #SBATCH --time=04:00:00
-#SBATCH --gres=gpu:4
+#SBATCH --gres=gpu:1
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
@@ -95,8 +95,8 @@ if torch.cuda.is_available():
 "
 
 # Create results directory
-mkdir -p src/results
-echo "Results will be saved to: src/results"
+mkdir -p src/results/phi4
+echo "Results will be saved to: src/results/phi4"
 
 # ====================================================================
 # EXPERIMENT CONFIGURATION

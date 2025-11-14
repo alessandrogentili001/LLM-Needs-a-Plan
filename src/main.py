@@ -140,6 +140,28 @@ def main():
     
     # Parse arguments
     args = parser.parse_args()
+
+    # Make output directory model-specific: append model name (from --model or weights_path)
+    try:
+        # Determine model alias: prefer explicit --model unless it's 'auto'
+        model_alias = None
+        if args.model and args.model.lower() != 'auto':
+            model_alias = args.model.lower()
+        else:
+            # Fallback: infer from weights_path directory name
+            try:
+                model_alias = Path(args.weights_path).name.lower()
+            except Exception:
+                model_alias = None
+
+        if model_alias:
+            # Ensure output_dir ends without a trailing slash then append model alias
+            args.output_dir = str(Path(args.output_dir) / model_alias)
+            # Create the directory now so shell scripts and logs see it
+            os.makedirs(args.output_dir, exist_ok=True)
+    except Exception:
+        # Non-fatal; keep the original output_dir if anything goes wrong
+        pass
     
     if args.verbose:
         print("Parsed arguments:")

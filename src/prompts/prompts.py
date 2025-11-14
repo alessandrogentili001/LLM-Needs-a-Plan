@@ -22,15 +22,16 @@ from typing import List, Optional
 # Base system prompt for PDDL planning tasks
 system_prompt_pddl = (
     "You are an expert automated PDDL planning assistant specializing in complex domains "
-    "like **Tetris** and **Citycar**, which involve explicit coordinate systems, "
+    "like Tetris and Citycar, which involve explicit coordinate systems, "
     "multi-parameter actions, negative preconditions, and action costs.\n"
     "Your primary objective is to find the **shortest and/or lowest-cost** plan that achieves the goal.\n"
     "When asked to return a plan, follow these rules unless explicitly told otherwise:\n"
     "- Output only the action sequence, one action per line, using the exact PDDL action syntax: (action-name param1 param2 ...).\n"
     "- Do not include explanations, commentary, or extra metadata unless requested.\n"
-    "- **Crucially**: Verify that all action preconditions are respected *in the current state* "
-    "and that the plan achieves *all* goal predicates **while minimizing the total-cost**.\n"
+    "- Crucially: Verify that all action preconditions are respected in the current state "
+    "and that the plan achieves all goal predicates while minimizing the total-cost.\n"
 )
+
 # Generic Chain-of-Thought helper (can be appended when CoT is requested)
 def chain_of_thought_prompt(domain: str, problem: str) -> str:
     """
@@ -39,14 +40,7 @@ def chain_of_thought_prompt(domain: str, problem: str) -> str:
     domain and problem strings to allow future domain/problem-aware hints.
     """
     return (
-        "Let's reason step-by-step to construct the optimal plan.\n"
-        "Important: Extract the initial state predicates and available PDDL objects directly from the 'PROBLEM DEFINITION' provided above. Do NOT ask the user to provide the initial state or objects — use the problem text as the authoritative source.\n"
-        "1) State and Object Analysis: Extract and list the initial state predicates and available PDDL objects from the problem.\n"
-        "2) Goal and Cost Identification: Identify goal predicates that must be satisfied.\n"
-        "3) Action Evaluation: For candidate actions, ensure preconditions are satisfied and estimate cost.\n"
-        "4) State Transition Simulation: Apply the chosen action and update the state accordingly.\n"
-        "5) Iterate until the goal is achieved.\n"
-        "After reasoning, output ONLY the final action sequence (one action per line)."
+        "Let's reason step-by-step, about the domain and problem descriptions provided, to construct the optimal plan.\n"
     )
 
 # Utilities
@@ -143,7 +137,7 @@ def tetris_problem_prompt(domain: str, problem: str, include_examples: bool = Tr
     header = (
         "TETRIS PLANNING TASK:\n"
         "You are solving a Tetris configuration planning problem.\n"
-        "Produce an action sequence that transforms the initial configuration into the goal configuration.\n"
+        "Now I provide you with all the information needed: the domain and the problem to be solved.\n"
     )
 
     body = f"=== DOMAIN DEFINITION ===\n{domain}\n\n=== PROBLEM DEFINITION ===\n{problem}"
@@ -157,8 +151,8 @@ def tetris_problem_prompt(domain: str, problem: str, include_examples: bool = Tr
 
     prompt = f"{system_prompt_pddl}\n\n{header}\n\n{body}"
 
-    if strict_plan_only:
-        prompt += "\n\n" + instructions
+    # Add output instructions
+    prompt += "\n\n" + instructions
 
     if include_examples:
         try:
@@ -176,8 +170,7 @@ def tetris_problem_prompt(domain: str, problem: str, include_examples: bool = Tr
 def tetris_chain_of_thought(domain: str, problem: str) -> str:
     # Reuse the generic CoT structure but tailor the preface for Tetris
     return (
-        "Let's think step-by-step about the Tetris configuration.\n"
-        + chain_of_thought_prompt(domain, problem)
+        chain_of_thought_prompt(domain, problem)
     )
 
 
@@ -283,7 +276,7 @@ def citycar_problem_prompt(domain: str, problem: str, include_examples: bool = T
     header = (
         "CITYCAR PLANNING TASK:\n"
         "You are solving an urban traffic planning problem modeled in PDDL.\n"
-        "Produce an action sequence that moves cars according to traffic rules and achieves the goal configuration.\n"
+        "Now I provide you with all the information needed: the domain and the problem to be solved.\n"
     )
 
     body = f"=== DOMAIN DEFINITION ===\n{domain}\n\n=== PROBLEM DEFINITION ===\n{problem}"
@@ -297,8 +290,8 @@ def citycar_problem_prompt(domain: str, problem: str, include_examples: bool = T
 
     prompt = f"{system_prompt_pddl}\n\n{header}\n\n{body}"
 
-    if strict_plan_only:
-        prompt += "\n\n" + instructions
+    # Add output instructions
+    prompt += "\n\n" + instructions
 
     if include_examples:
         try:
@@ -312,10 +305,8 @@ def citycar_problem_prompt(domain: str, problem: str, include_examples: bool = T
 
 
 def citycar_chain_of_thought(domain: str, problem: str) -> str:
-    return (
-        "Let's reason step-by-step about the traffic situation.\n"
-        + chain_of_thought_prompt(domain, problem)
-    )
+    # Reuse the generic CoT structure but tailor the preface for CityCar
+    return chain_of_thought_prompt(domain, problem)
 
 
 def citycar_validation_feedback(original_prompt: str, plan: str, validation_error: str) -> str:

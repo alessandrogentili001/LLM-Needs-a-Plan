@@ -324,23 +324,6 @@ class ModelManager:
             
             # Format current conversation
             conversation_text = self._format_conversation(messages)
-
-            # --- DEBUG LOGGING: write the exact conversation sent to the model ---
-            try:
-                # Write debug logs into the repository root `debug_prompts/` so they
-                # are easy to find regardless of the current working directory used
-                # by batch/cluster jobs.
-                repo_root = Path(__file__).resolve().parents[2]
-                dbg_dir = repo_root / "debug_prompts"
-                print(f"[DEBUG] Attempting to write debug prompts to: {dbg_dir}")
-                dbg_dir.mkdir(parents=True, exist_ok=True)
-                problem_base = Path(problem_path).stem if problem_path else "unknown_problem"
-                convo_file = dbg_dir / f"{problem_base}_conversation_iter{iteration+1}.txt"
-                convo_file.write_text(conversation_text, encoding="utf-8")
-            except Exception as e:
-                # Do not fail the planning loop due to logging issues but surface debug info
-                print(f"[DEBUG] Failed to write conversation log: {e}")
-                pass
             
             # Generate response
             # Remove conflicting arguments from generation_kwargs
@@ -364,16 +347,6 @@ class ModelManager:
                 include_prompt=False,
                 **filtered_kwargs
             )
-
-            # Save raw response for debugging
-            try:
-                repo_root = Path(__file__).resolve().parents[2]
-                dbg_dir = repo_root / "debug_prompts"
-                raw_file = dbg_dir / f"{problem_base}_raw_response_iter{iteration+1}.txt"
-                raw_file.write_text(response, encoding="utf-8")
-            except Exception as e:
-                print(f"[DEBUG] Failed to write raw response log: {e}")
-                pass
             
             # Extract and validate plan
             formatted_response = formatter(response, include_reasoning=True)

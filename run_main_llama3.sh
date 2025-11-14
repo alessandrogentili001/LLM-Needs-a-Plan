@@ -95,8 +95,8 @@ if torch.cuda.is_available():
 "
 
 # Create results directory
-mkdir -p src/results
-echo "Results will be saved to: src/results"
+mkdir -p src/results/llama3
+echo "Results will be saved to: src/results/llama3"
 
 # ====================================================================
 # EXPERIMENT CONFIGURATION
@@ -115,7 +115,7 @@ MAX_TOKENS=5000
 TEMPERATURE=0.1
 
 # Features to enable
-ENABLE_COT=false        # Chain of Thought
+ENABLE_COT=true        # Chain of Thought
 ENABLE_SAMPLING=true   # Sampling vs greedy
 VERBOSE=true           # Detailed output
 

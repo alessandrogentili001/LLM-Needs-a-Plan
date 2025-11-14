@@ -215,11 +215,11 @@ class PDDLProcessor:
 
         # --- DEBUG: print the exact prompt we will send to the model so cluster
         # jobs capture it in stdout/stderr logs (easier to inspect than files).
-        try:
-            print(f"\n---PROMPT SENT TO MODEL for {problem_name}---\n{prompt_text}\n---END PROMPT---\n")
-        except Exception:
-            # non-fatal if printing fails
-            pass
+        #try:
+        #    print(f"\n---PROMPT SENT TO MODEL for {problem_name}---\n{prompt_text}\n---END PROMPT---\n")
+        #except Exception:
+        #    # non-fatal if printing fails
+        #    pass
 
         # Select domain-specific validation feedback function when available
         validation_feedback_fn = self._get_validation_feedback_fn(domain_name)
