@@ -69,24 +69,39 @@ def validate_plan(domain_path: str, problem_path: str, plan_path: str, val_execu
         # Get timeout from config
         try:
             config = load_config()
-            timeout = config.get("VAL_TIMEOUT", 60)
+            timeout = config.get("VAL_TIMEOUT", 300)
         except:
-            timeout = 60
+            timeout = 300
         
         # Run VAL: Validate domain.pddl problem.pddl plan.txt
+        cmd = [val_executable, domain_path, problem_path, plan_path]
         result = subprocess.run(
-            [val_executable, domain_path, problem_path, plan_path],
+            cmd,
             capture_output=True,
             text=True,
             timeout=timeout
         )
         
+        # Log for debugging
+        import logging
+        logger = logging.getLogger(__name__)
+        # Comment for readability 
+        # logger.debug(f"VAL command: {' '.join(cmd)}")
+        logger.debug(f"VAL return code: {result.returncode}")
+        # Comment for readability 
+        # logger.debug(f"VAL stdout: {result.stdout}")
+        # logger.debug(f"VAL stderr: {result.stderr}")
+        
         # VAL returns 0 for valid plans, non-zero for invalid
         is_valid = result.returncode == 0
         
+        error_msg = result.stderr.strip() if result.stderr else None
+        if not is_valid and not error_msg:
+            error_msg = result.stdout.strip() if result.stdout else "Unknown validation error"
+        
         return {
             "valid": is_valid,
-            "error": result.stderr.strip() if not is_valid and result.stderr else None
+            "error": error_msg
         }
         
     except FileNotFoundError:
@@ -119,11 +134,17 @@ def validate_plan_from_text(domain_path: str, problem_path: str, plan_text: str,
     Returns:
         Dict: {"valid": bool, "error": str or None}
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
         # Create temporary plan file
         with tempfile.NamedTemporaryFile(mode='w', suffix='.plan', delete=False, encoding='utf-8') as temp_plan:
             temp_plan.write(plan_text)
             temp_plan_path = temp_plan.name
+        
+        logger.debug(f"Created temp plan file: {temp_plan_path}")
+        logger.debug(f"Plan content:\n{plan_text}")
         
         # Validate using VAL
         result = validate_plan(domain_path, problem_path, temp_plan_path, val_executable)
@@ -137,6 +158,7 @@ def validate_plan_from_text(domain_path: str, problem_path: str, plan_text: str,
         return result
         
     except Exception as e:
+        logger.exception("Error in validate_plan_from_text")
         return {
             "valid": False,
             "error": f"Error creating temporary plan file: {str(e)}"

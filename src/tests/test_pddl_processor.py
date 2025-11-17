@@ -52,8 +52,8 @@ def test_pddl_processor_integration():
         
         print(f"Found {len(pddl_data)} domains:")
         for domain_data in pddl_data:
-            domain_name = domain_data["domain_name"]
-            problem_count = len(domain_data["problem_paths"])
+            domain_name = domain_data.domain_name
+            problem_count = len(domain_data.problem_paths)
             print(f"  - {domain_name}: {problem_count} problems")
         
         # Test PDDLProcessor initialization (without model)

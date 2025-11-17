@@ -1,228 +1,151 @@
-"""
-File Manager for PDDL Planning
+"""Filesystem helpers for discovering and persisting PDDL artifacts."""
 
-Manages file operations for PDDL files and generated plans.
-Handles discovery and organization of PDDL domain and problem files.
-"""
+from __future__ import annotations
 
-import os
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import Dict, Iterable, List, Optional
+
+from utils.logging_utils import get_logger
+
+logger = get_logger(__name__)
+
+
+@dataclass(frozen=True)
+class DomainBundle:
+    """Structured representation of a domain plus its problems."""
+
+    domain_name: str
+    domain_path: Path
+    domain_text: str
+    problem_paths: List[Path] = field(default_factory=list)
+
+    def as_dict(self) -> Dict[str, object]:
+        """Return a dict representation for backward compatibility."""
+        return {
+            "domain_name": self.domain_name,
+            "domain_path": str(self.domain_path),
+            "domain_text": self.domain_text,
+            "problem_paths": [str(p) for p in self.problem_paths],
+        }
 
 
 class FileManager:
-    """
-    Manages file operations for PDDL files and generated plans.
-    
-    Main functionality:
-    - find_pddl_files: for each domain file, associates a list of problem file paths with it
-    - File reading/writing operations
-    - Directory management
-    """
+    """Utility class for reading and writing assets on disk."""
 
-    def __init__(self):
-        """Initialize the FileManager."""
-        pass
-
-    def read_file(self, file_path: str) -> Optional[str]:
-        """
-        Read a file and return its contents.
-
-        Args:
-            file_path (str): Path to the file
-
-        Returns:
-            Optional[str]: Contents of the file or None if error
-        """
-        if not os.path.exists(file_path):
-            print(f"File not found: {file_path}")
+    def read_file(self, file_path: str | Path) -> Optional[str]:
+        path = Path(file_path)
+        if not path.exists():
+            logger.warning("File not found: %s", path)
             return None
 
         try:
-            with open(file_path, "r", encoding='utf-8') as f:
-                return f.read()
-        except Exception as e:
-            print(f"Error reading file {file_path}: {e}")
+            return path.read_text(encoding="utf-8")
+        except OSError as exc:
+            logger.error("Error reading %s: %s", path, exc)
             return None
 
-    def save_file(self, output_file_path: str, content: str) -> bool:
-        """
-        Save content to a file.
-
-        Args:
-            output_file_path (str): Path to save the file
-            content (str): Content to save
-
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        # Ensure output directory exists
-        os.makedirs(os.path.dirname(output_file_path), exist_ok=True)
-
+    def save_file(self, output_file_path: str | Path, content: str) -> bool:
+        path = Path(output_file_path)
         try:
-            with open(output_file_path, "w", encoding='utf-8') as f:
-                f.write(content)
-            print(f"Saved plan to {output_file_path}")
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding="utf-8")
+            logger.info("Saved file: %s", path)
             return True
-        except Exception as e:
-            print(f"Error saving file {output_file_path}: {e}")
+        except OSError as exc:
+            logger.error("Unable to write %s: %s", path, exc)
             return False
 
-    def find_pddl_files(self, problems_path: str) -> List[Dict]:
-        """
-        Find all domain and problem files in the given directory structure.
-        
-        Expected structure:
-        src/data/                       
-        ├── tetris/                      # Domain folders
-            ├── domain.pddl              # Domain definition
-            ├── problem_01.pddl          # Problem instances  
-            └── problem_02.pddl
-            ...
-        ...
-        
-        Args:
-            problems_path (str): Path to data directory containing domain folders
+    def find_pddl_files(self, problems_path: str | Path) -> List[DomainBundle]:
+        root = Path(problems_path)
+        if not root.exists():
+            logger.error("Problems path does not exist: %s", root)
+            return []
 
-        Returns:
-            List[Dict]: List of dictionaries containing domain and problem file information
-            
-        Example return:
-        [
-            {
-                "domain_path": "/path/to/tetris/domain.pddl",
-                "domain_text": "(define (domain tetris) ...)",
-                "domain_name": "tetris",
-                "problem_paths": ["/path/to/tetris/problem_01.pddl", "/path/to/tetris/problem_02.pddl"]
-            }
+        bundles: List[DomainBundle] = []
+        logger.info("Scanning PDDL domains in %s", root)
+
+        for domain_dir in sorted(self._iter_domain_directories(root)):
+            bundle = self._build_domain_bundle(domain_dir)
+            if bundle:
+                bundles.append(bundle)
+
+        logger.info("Discovered %d domain(s)", len(bundles))
+        return bundles
+
+    def ensure_directory_exists(self, directory_path: str | Path) -> bool:
+        try:
+            Path(directory_path).mkdir(parents=True, exist_ok=True)
+            return True
+        except OSError as exc:
+            logger.error("Cannot create directory %s: %s", directory_path, exc)
+            return False
+
+    def list_files(self, directory_path: str | Path, extension: Optional[str] = None) -> List[str]:
+        path = Path(directory_path)
+        if not path.exists():
+            return []
+
+        files = [str(child) for child in path.iterdir() if child.is_file()]
+        if extension:
+            files = [f for f in files if f.endswith(extension)]
+        return sorted(files)
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _iter_domain_directories(self, root: Path) -> Iterable[Path]:
+        for child in root.iterdir():
+            if not child.is_dir() or child.name.startswith("."):
+                continue
+            if child.name.lower() in {"readme", "docs", "__pycache__"}:
+                continue
+            yield child
+
+    def _build_domain_bundle(self, domain_dir: Path) -> Optional[DomainBundle]:
+        domain_file = self._locate_domain_file(domain_dir)
+        if not domain_file:
+            logger.warning("Skipping %s: domain file not found", domain_dir)
+            return None
+
+        domain_text = self.read_file(domain_file)
+        if domain_text is None:
+            logger.warning("Skipping %s: unable to read domain file", domain_dir)
+            return None
+
+        problem_paths = self._collect_problem_files(domain_dir, domain_file.name)
+        if not problem_paths:
+            logger.warning("Skipping %s: no problem files detected", domain_dir)
+            return None
+
+        logger.debug(
+            "Domain %s -> %d problem(s)", domain_dir.name, len(problem_paths)
+        )
+
+        return DomainBundle(
+            domain_name=domain_dir.name,
+            domain_path=domain_file,
+            domain_text=domain_text,
+            problem_paths=problem_paths,
+        )
+
+    def _locate_domain_file(self, domain_dir: Path) -> Optional[Path]:
+        candidates = [domain_dir / "domain.pddl", domain_dir / f"{domain_dir.name}_domain.pddl"]
+        candidates.extend(domain_dir.glob("*_domain.pddl"))
+
+        for candidate in candidates:
+            if candidate.exists():
+                return candidate
+        return None
+
+    def _collect_problem_files(self, domain_dir: Path, domain_filename: str) -> List[Path]:
+        problems = [
+            child
+            for child in domain_dir.glob("*.pddl")
+            if child.name != domain_filename
         ]
-        """
-        pddl_directories = []
+        return sorted(problems)
 
-        if not os.path.exists(problems_path):
-            print(f"Problems path does not exist: {problems_path}")
-            return pddl_directories
 
-        print(f"Searching for PDDL domains in: {problems_path}")
-
-        # Look for domain directories (tetris, citycar, logistics, etc.)
-        try:
-            for item in os.listdir(problems_path):
-                domain_dir = os.path.join(problems_path, item)
-                
-                # Skip if not a directory or if it's a hidden/system directory
-                if not os.path.isdir(domain_dir) or item.startswith('.'):
-                    continue
-                
-                # Skip README and other non-domain directories
-                if item.lower() in ['readme', 'docs', '__pycache__']:
-                    continue
-                
-                print(f"Checking domain directory: {item}")
-                
-                # Look for domain files in this directory
-                try:
-                    files = os.listdir(domain_dir)
-                except OSError as e:
-                    print(f"Cannot access directory {domain_dir}: {e}")
-                    continue
-                
-                # Find domain file with multiple naming patterns
-                domain_file = None
-                
-                # Pattern 1: domain.pddl
-                if "domain.pddl" in files:
-                    domain_file = "domain.pddl"
-                # Pattern 2: {domain_name}_domain.pddl (like tetris_domain.pddl)
-                elif f"{item}_domain.pddl" in files:
-                    domain_file = f"{item}_domain.pddl"
-                # Pattern 3: any *_domain.pddl file
-                else:
-                    domain_files = [f for f in files if f.endswith("_domain.pddl")]
-                    if domain_files:
-                        domain_file = domain_files[0]
-                
-                if not domain_file:
-                    print(f"No domain file found in {domain_dir}")
-                    continue
-                
-                # Read domain content
-                domain_path = os.path.join(domain_dir, domain_file)
-                domain_text = self.read_file(domain_path)
-                if domain_text is None:
-                    print(f"Failed to read domain file: {domain_path}")
-                    continue
-                
-                # Find problem files (all .pddl files except the domain file)
-                problem_files = [f for f in files if f.endswith(".pddl") and f != domain_file]
-                
-                if not problem_files:
-                    print(f"No problem files found in {domain_dir}")
-                    continue
-                
-                # Create problem paths and sort them
-                problem_paths = [os.path.join(domain_dir, f) for f in problem_files]
-                problem_paths.sort()
-                
-                # Use directory name as domain name
-                domain_name = item
-                
-                # Add to results
-                pddl_directories.append({
-                    "domain_path": domain_path,
-                    "domain_text": domain_text,
-                    "domain_name": domain_name,
-                    "problem_paths": problem_paths,
-                })
-                
-                print(f"Found domain '{domain_name}' with {len(problem_paths)} problems")
-                
-        except OSError as e:
-            print(f"Error accessing problems directory {problems_path}: {e}")
-            return pddl_directories
-
-        print(f"Total domains discovered: {len(pddl_directories)}")
-        return pddl_directories
-
-    def ensure_directory_exists(self, directory_path: str) -> bool:
-        """
-        Ensure that a directory exists, creating it if necessary.
-        
-        Args:
-            directory_path (str): Path to directory
-            
-        Returns:
-            bool: True if directory exists or was created successfully
-        """
-        try:
-            os.makedirs(directory_path, exist_ok=True)
-            return True
-        except Exception as e:
-            print(f"Error creating directory {directory_path}: {e}")
-            return False
-            
-    def list_files(self, directory_path: str, extension: str = None) -> List[str]:
-        """
-        List files in a directory, optionally filtered by extension.
-        
-        Args:
-            directory_path (str): Path to directory
-            extension (str, optional): File extension filter (e.g., ".pddl")
-            
-        Returns:
-            List[str]: List of file paths
-        """
-        if not os.path.exists(directory_path):
-            return []
-            
-        try:
-            files = []
-            for file in os.listdir(directory_path):
-                file_path = os.path.join(directory_path, file)
-                if os.path.isfile(file_path):
-                    if extension is None or file.endswith(extension):
-                        files.append(file_path)
-            return sorted(files)
-        except Exception as e:
-            print(f"Error listing files in {directory_path}: {e}")
-            return []
+__all__ = ["FileManager", "DomainBundle"]

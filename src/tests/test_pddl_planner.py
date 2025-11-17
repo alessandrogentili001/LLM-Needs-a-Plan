@@ -28,9 +28,13 @@ class MockArgs:
         self.sampling = False
         self.max_tokens = 5000
         self.temperature = 0.6
+        self.top_k = 10
         self.include_prompt = False
         self.skip_special_tokens = True
         self.model = "auto"
+        self.verbose = False
+        self.log_level = "INFO"
+        self.log_file = None
 
 def test_pddl_planner_setup():
     """Test PDDLPlanner setup without model loading."""
@@ -75,8 +79,8 @@ def test_pddl_planner_setup():
         if domains_data:
             print(f"Found {len(domains_data)} domain(s):")
             for domain_data in domains_data:
-                domain_name = domain_data["domain_name"]
-                problem_count = len(domain_data["problem_paths"])
+                domain_name = domain_data.domain_name
+                problem_count = len(domain_data.problem_paths)
                 print(f"  - {domain_name}: {problem_count} problems")
         else:
             print("No domains found")
@@ -87,13 +91,13 @@ def test_pddl_planner_setup():
         
         # Test domain filtering
         if domains_data:
-            first_domain = domains_data[0]["domain_name"]
+            first_domain = domains_data[0].domain_name
             print(f"\nTesting domain filtering for: {first_domain}")
             args.domain = first_domain
             
             filtered_domains = [
                 d for d in domains_data 
-                if d["domain_name"].lower() == args.domain.lower()
+                if d.domain_name.lower() == args.domain.lower()
             ]
             print(f"Filtered to {len(filtered_domains)} domain(s)")
             

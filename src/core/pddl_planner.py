@@ -1,272 +1,183 @@
-"""
-PDDL Planner - Main Orchestrator
+"""High-level orchestrator tying together file discovery, models, and processing."""
 
-Main orchestrator class for the PDDL Planning Framework.
-Coordinates all components including FileManager, ModelManager, and PDDLProcessor
-to provide a complete planning solution.
-"""
+from __future__ import annotations
 
-import os
-import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
-# Import core modules with proper error handling
-try:
-    from .file_manager import FileManager
-    from .model_manager import ModelManager
-    from .pddl_processor import PDDLProcessor
-    from ..utils.configuration import load_config
-except ImportError:
-    # Fallback imports for when run directly
-    import sys
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    from src.core.file_manager import FileManager
-    from src.core.model_manager import ModelManager
-    from src.core.pddl_processor import PDDLProcessor
-    from src.utils.configuration import load_config
+from .file_manager import DomainBundle, FileManager
+from .model_manager import ModelManager
+from .pddl_processor import PDDLProcessor
+from utils.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class PDDLPlanner:
-    """
-    Main orchestrator for the PDDL Planning Framework.
-    
-    Coordinates the complete planning pipeline:
-    - File discovery and organization
-    - Model loading and management
-    - PDDL processing and plan generation
-    - Output management and reporting
-    """
+    """Coordinates discovery, model loading, and processing workflows."""
 
     def __init__(self, args, config: Optional[Dict] = None):
-        """
-        Initialize the PDDLPlanner with command line arguments.
-
-        Args:
-            args: Parsed command line arguments
-            config (Optional[Dict]): Configuration dictionary (loaded if not provided)
-        """
         self.args = args
-        self.config = config or load_config()
-        
-        # Core components (initialized in setup())
-        self.file_manager = None
-        self.model_manager = None
-        self.processor = None
-        
-        # Processing state
-        self.domains_data = None
-        self.results = {}
-        
-        print(f"PDDLPlanner initialized")
-        print(f"  Problems path: {args.problems_path}")
-        print(f"  Model path: {args.weights_path}")
-        print(f"  Output directory: {args.output_dir}")
+        self.config = config or {}
+        self.file_manager: Optional[FileManager] = None
+        self.model_manager: Optional[ModelManager] = None
+        self.processor: Optional[PDDLProcessor] = None
+        self.domains_data: List[DomainBundle] = []
+        self.results: Dict[str, Any] = {}
+        logger.info(
+            "Planner initialized (problems=%s, weights=%s, output=%s)",
+            args.problems_path,
+            args.weights_path,
+            args.output_dir,
+        )
 
-    def setup(self):
-        """Set up all components required for planning."""
-        
-        print("\nSetting up PDDL Planner components...")
-        
-        # Initialize file manager
-        print("  Initializing FileManager...")
+    # ------------------------------------------------------------------
+    # Lifecycle
+    # ------------------------------------------------------------------
+
+    def setup(self) -> None:
+        logger.info("Setting up planner components")
         self.file_manager = FileManager()
-        
-        # Discover PDDL domains and problems
-        print(f"  Discovering PDDL files in: {self.args.problems_path}")
-        self.domains_data = self.file_manager.find_pddl_files(self.args.problems_path)
-        
-        if not self.domains_data:
-            raise ValueError(f"No PDDL domains found in {self.args.problems_path}")
-        
-        print(f"  Found {len(self.domains_data)} domain(s):")
-        for domain_data in self.domains_data:
-            domain_name = domain_data["domain_name"]
-            problem_count = len(domain_data["problem_paths"])
-            print(f"    - {domain_name}: {problem_count} problems")
-        
-        # Filter domains if specific domain requested
-        if self.args.domain:
-            print(f"  Filtering for domain: {self.args.domain}")
-            self.domains_data = [
-                d for d in self.domains_data 
-                if d["domain_name"].lower() == self.args.domain.lower()
-            ]
-            
-            if not self.domains_data:
-                raise ValueError(f"Domain '{self.args.domain}' not found")
-        
-        # Initialize model manager
-        print("  Initializing ModelManager...")
+        self.domains_data = self._discover_domains()
+        self._filter_domains_if_requested()
+
         model_path = self._resolve_model_path()
         self.model_manager = ModelManager(model_path)
-        
-        print("  Loading model (this may take a while)...")
-        try:
-            self.model_manager.load()
-            model_info = self.model_manager.get_model_info()
-            print(f"  Model loaded successfully: {model_info.get('model_type', 'unknown')}")
-            print(f"  Parameters: {model_info.get('parameters', 'unknown')}")
-            print(f"  Device: {model_info.get('device', 'unknown')}")
-        except Exception as e:
-            raise RuntimeError(f"Failed to load model: {e}")
-        
-        # Initialize processor
-        print("  Initializing PDDLProcessor...")
-        self.processor = PDDLProcessor(
-            model_manager=self.model_manager,
-            output_dir=self.args.output_dir
-        )
-        
-        print("PDDL Planner setup complete!")
+        self.model_manager.load()
 
-    def run(self):
-        """Run the PDDL planning process."""
-        
-        print("\nStarting PDDL planning process...")
-        print("=" * 50)
-        
-        if not self.domains_data:
-            raise RuntimeError("No domains available. Run setup() first.")
-        
-        # Prepare processing arguments
-        processing_kwargs = {
+        self.processor = PDDLProcessor(
+            model_manager=self.model_manager, output_dir=self.args.output_dir
+        )
+        logger.info("Planner setup complete")
+
+    def run(self) -> None:
+        if not self.domains_data or not self.processor:
+            raise RuntimeError("Planner setup() must be executed before run().")
+
+        processing_kwargs = self._build_processing_kwargs()
+
+        if self.args.batch:
+            logger.info("Running batch mode across all domains")
+            self.results = self.processor.batch_process_domains(
+                self.domains_data, **processing_kwargs
+            )
+        else:
+            logger.info("Running sequential mode")
+            overall_stats = {
+                "total_problems": 0,
+                "total_successful": 0,
+                "total_failed": 0,
+            }
+            domain_results = []
+            for domain_bundle in self.domains_data:
+                result = self.processor.process_domain_with_validation(
+                    domain_bundle, **processing_kwargs
+                )
+                domain_results.append(result)
+                overall_stats["total_problems"] += result["total_problems"]
+                overall_stats["total_successful"] += result["successful_plans"]
+                overall_stats["total_failed"] += result["failed_plans"]
+
+            self.results = {
+                "domain_results": domain_results,
+                "overall_stats": overall_stats,
+            }
+
+        self._log_summary()
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    def _discover_domains(self) -> List[DomainBundle]:
+        bundles = self.file_manager.find_pddl_files(self.args.problems_path)
+        if not bundles:
+            raise ValueError(
+                f"No PDDL domains found in {self.args.problems_path}."
+            )
+        return bundles
+
+    def _filter_domains_if_requested(self) -> None:
+        if not self.args.domain:
+            return
+        filtered = [
+            bundle
+            for bundle in self.domains_data
+            if bundle.domain_name.lower() == self.args.domain.lower()
+        ]
+        if not filtered:
+            raise ValueError(f"Domain '{self.args.domain}' not found")
+        self.domains_data = filtered
+
+    def _resolve_model_path(self) -> str:
+        return str(Path(self.args.weights_path))
+
+    def _build_processing_kwargs(self) -> Dict[str, Any]:
+        kwargs = {
             "max_iterations": self.args.max_iterations,
             "enable_cot": self.args.cot,
             "add_system_prompt": self.args.add_system_prompt,
             "sampling": self.args.sampling,
             "max_tokens": self.args.max_tokens,
             "include_prompt": self.args.include_prompt,
-            "skip_special_tokens": self.args.skip_special_tokens
+            "skip_special_tokens": self.args.skip_special_tokens,
+            "temperature": self.args.temperature,
+            "top_k": getattr(self.args, "top_k", 10),
         }
-        
-        # Only pass temperature if sampling is enabled
-        if self.args.sampling:
-            processing_kwargs["temperature"] = self.args.temperature
-        
-        if self.args.batch:
-            # Process all domains in batch
-            print("Running batch processing for all domains...")
-            self.results = self.processor.batch_process_domains(
-                domains_data=self.domains_data,
-                **processing_kwargs
-            )
-        else:
-            # Process domains one at a time (with validation)
-            print("Processing domains one at a time with validation...")
+        return kwargs
 
-            # Initialize results structure
-            self.results = {
-                "domain_results": [],
-                "overall_stats": {
-                    "total_problems": 0,
-                    "total_successful": 0,
-                    "total_failed": 0
-                }
-            }
-            
-            # Loop over the domains
-            for i, domain_data in enumerate(self.domains_data, 1):
-                print(f"\nProcessing domain {i}/{len(self.domains_data)}: {domain_data['domain_name']}")
-                print("-" * 40)
-                
-                # Process domain with validation
-                try:
-                    domain_result = self.processor.process_domain_with_validation(
-                        domain_data=domain_data,
-                        **processing_kwargs
-                    )
-                    
-                    # Store domain results
-                    self.results["domain_results"].append(domain_result)
-                    
-                    # Update overall statistics
-                    stats = self.results["overall_stats"]
-                    stats["total_problems"] += domain_result["total_problems"]
-                    stats["total_successful"] += domain_result["successful_plans"]
-                    stats["total_failed"] += domain_result["failed_plans"]
-                    
-                except Exception as e:
-                    print(f"Error processing domain {domain_data['domain_name']}: {e}")
-                    self.results["domain_results"].append({
-                        "domain_name": domain_data["domain_name"],
-                        "error": str(e),
-                        "total_problems": len(domain_data.get("problem_paths", [])),
-                        "successful_plans": 0,
-                        "failed_plans": len(domain_data.get("problem_paths", []))
-                    })
-        
-        # Print final summary
-        self._print_final_summary()
+    def _log_summary(self) -> None:
+        stats = self.results.get("overall_stats")
+        if not stats:
+            return
+        total = stats.get("total_problems", 0)
+        success = stats.get("total_successful", 0)
+        failed = stats.get("total_failed", 0)
+        rate = (success / total) * 100 if total else 0
+        logger.info(
+            "Summary: problems=%d success=%d failed=%d (%.1f%%)",
+            total,
+            success,
+            failed,
+            rate,
+        )
+        for domain in self.results.get("domain_results", []):
+            if "error" in domain:
+                logger.error("Domain %s failed: %s", domain["domain_name"], domain["error"])
+            else:
+                domain_total = domain["total_problems"]
+                domain_success = domain["successful_plans"]
+                domain_rate = (
+                    (domain_success / domain_total) * 100 if domain_total else 0
+                )
+                logger.info(
+                    "Domain %s: %d/%d (%.1f%%)",
+                    domain["domain_name"],
+                    domain_success,
+                    domain_total,
+                    domain_rate,
+                )
+        logger.info("Results stored in %s", self.args.output_dir)
 
-    def _resolve_model_path(self) -> str:
-        """
-        Resolve the full model path based on arguments and model type.
-
-        Returns:
-            str: Full path to the model directory
-        """
-        weights_path = Path(self.args.weights_path)
-                
-        # Fallback to original path
-        return str(weights_path)
-
-    def _print_final_summary(self):
-        """Print final processing summary."""
-        
-        print(f"\n" + "=" * 60)
-        print("FINAL PROCESSING SUMMARY")
-        print("=" * 60)
-        
-        if "overall_stats" in self.results:
-            stats = self.results["overall_stats"]
-            total_problems = stats["total_problems"]
-            successful = stats["total_successful"]
-            failed = stats["total_failed"]
-            
-            success_rate = (successful / total_problems) * 100 if total_problems > 0 else 0
-            
-            print(f"Domains processed: {len(self.results['domain_results'])}")
-            print(f"Total problems: {total_problems}")
-            print(f"Successful plans: {successful}")
-            print(f"Failed plans: {failed}")
-            print(f"Success rate: {success_rate:.1f}%")
-            
-            # Domain-by-domain breakdown
-            print(f"\nDomain Breakdown:")
-            for domain_result in self.results["domain_results"]:
-                domain_name = domain_result["domain_name"]
-                if "error" in domain_result:
-                    print(f"  {domain_name}: ERROR - {domain_result['error']}")
-                else:
-                    domain_success = domain_result["successful_plans"]
-                    domain_total = domain_result["total_problems"]
-                    domain_rate = (domain_success / domain_total) * 100 if domain_total > 0 else 0
-                    print(f"  {domain_name}: {domain_success}/{domain_total} ({domain_rate:.1f}%)")
-        
-        print(f"\nOutput directory: {self.args.output_dir}")
-        print("=" * 60)
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
 
     def get_results(self) -> Dict[str, Any]:
-        """
-        Get processing results.
-
-        Returns:
-            Dict[str, Any]: Complete results from processing
-        """
         return self.results
 
     def get_planner_info(self) -> Dict[str, Any]:
-        """
-        Get information about the planner configuration.
-
-        Returns:
-            Dict[str, Any]: Planner configuration information
-        """
         return {
             "arguments": vars(self.args),
             "config": self.config,
-            "domains_available": len(self.domains_data) if self.domains_data else 0,
-            "model_info": self.model_manager.get_model_info() if self.model_manager else None,
-            "processor_info": self.processor.get_processor_info() if self.processor else None
+            "domains_available": len(self.domains_data),
+            "model_info": self.model_manager.get_model_info()
+            if self.model_manager
+            else None,
+            "processor_info": self.processor.get_processor_info()
+            if self.processor
+            else None,
         }
+
+
+__all__ = ["PDDLPlanner"]

@@ -124,8 +124,9 @@ def test_file_manager():
             
             print(f"Found {len(domains)} domains:")
             for domain_info in domains:
-                domain_name = domain_info.get('domain_name', 'unknown')
-                problem_count = len(domain_info.get('problem_paths', []))
+                domain_name = getattr(domain_info, 'domain_name', 'unknown')
+                problem_paths = getattr(domain_info, 'problem_paths', [])
+                problem_count = len(problem_paths)
                 print(f"  {domain_name}: {problem_count} problems")
             
             return len(domains) > 0

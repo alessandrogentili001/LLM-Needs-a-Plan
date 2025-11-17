@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --account=IscrC_VisLLMs
 #SBATCH --partition=boost_usr_prod
-#SBATCH --time=04:00:00
+#SBATCH --time=50:00:00
 #SBATCH --gres=gpu:2
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
@@ -94,17 +94,15 @@ if torch.cuda.is_available():
         print(f'  GPU {i}: {torch.cuda.get_device_name(i)}')
 "
 
-# Create results directory
-mkdir -p src/results/gemma3
-echo "Results will be saved to: src/results/gemma3"
-
 # ====================================================================
 # EXPERIMENT CONFIGURATION
 # You can modify these parameters for different experiments
 # ====================================================================
 
-# Model configuration (choose one)
-WEIGHTS_PATH="src/models/Gemma3"  # wights directory for the choosen model 
+# Model configuration
+MODEL_NAME="gemma3"
+WEIGHTS_PATH="src/models/Gemma3"  # weights directory for the chosen model
+OUTPUT_DIR="src/results"
 
 # Domain configuration  
 PROBLEMS_PATH="src/data"
@@ -113,11 +111,23 @@ PROBLEMS_PATH="src/data"
 MAX_ITERATIONS=1
 MAX_TOKENS=5000
 TEMPERATURE=0.1
+TOP_K=10
+
+# Logging configuration
+LOG_LEVEL="INFO"
+LOG_FILE=""  # set to e.g. "logs/gemma3_iters_1.log" to persist logs
 
 # Features to enable
-ENABLE_COT=true        # Chain of Thought
-ENABLE_SAMPLING=true   # Sampling vs greedy
-VERBOSE=true           # Detailed output
+ENABLE_SYSTEM_PROMPT=true
+ENABLE_COT=true
+ENABLE_SAMPLING=true
+INCLUDE_PROMPT=true
+SKIP_SPECIAL_TOKENS=true
+VERBOSE=true
+
+# Create results directory
+mkdir -p src/results/gemma3
+echo "Results will be saved to: src/results/gemma3"
 
 echo "=========================================="
 echo "Experiment Configuration"
@@ -127,32 +137,61 @@ echo "Problems Path: $PROBLEMS_PATH"
 echo "Max Iterations: $MAX_ITERATIONS"
 echo "Max Tokens: $MAX_TOKENS"
 echo "Temperature: $TEMPERATURE"
+echo "Top-k: $TOP_K"
 echo "Chain of Thought: $ENABLE_COT"
 echo "Sampling: $ENABLE_SAMPLING"
+echo "System Prompt: $ENABLE_SYSTEM_PROMPT"
+echo "Include Prompt: $INCLUDE_PROMPT"
+echo "Skip Special Tokens: $SKIP_SPECIAL_TOKENS"
 echo "Verbose Output: $VERBOSE"
+echo "Log Level: $LOG_LEVEL"
+echo "Log File: ${LOG_FILE:-none}"
 echo "=========================================="
 
 # Build command arguments
 MAIN_ARGS="--problems_path $PROBLEMS_PATH --weights_path $WEIGHTS_PATH"
+MAIN_ARGS="$MAIN_ARGS --output_dir $OUTPUT_DIR --model $MODEL_NAME"
 MAIN_ARGS="$MAIN_ARGS --max_iterations $MAX_ITERATIONS --max_tokens $MAX_TOKENS"
+MAIN_ARGS="$MAIN_ARGS --log-level $LOG_LEVEL"
+
+if [ -n "$LOG_FILE" ]; then
+    mkdir -p "$(dirname "$LOG_FILE")"
+    MAIN_ARGS="$MAIN_ARGS --log-file $LOG_FILE"
+fi
+
+if [ "$ENABLE_SYSTEM_PROMPT" = true ]; then
+    MAIN_ARGS="$MAIN_ARGS --add_system_prompt"
+else
+    MAIN_ARGS="$MAIN_ARGS --no-add_system_prompt"
+fi
 
 if [ "$ENABLE_COT" = true ]; then
     MAIN_ARGS="$MAIN_ARGS --cot"
+else
+    MAIN_ARGS="$MAIN_ARGS --no-cot"
+fi
+
+if [ "$INCLUDE_PROMPT" = true ]; then
+    MAIN_ARGS="$MAIN_ARGS --include_prompt"
+else
+    MAIN_ARGS="$MAIN_ARGS --no-include_prompt"
+fi
+
+if [ "$SKIP_SPECIAL_TOKENS" = true ]; then
+    MAIN_ARGS="$MAIN_ARGS --skip_special_tokens"
+else
+    MAIN_ARGS="$MAIN_ARGS --no-skip_special_tokens"
 fi
 
 if [ "$ENABLE_SAMPLING" = true ]; then
-    # --sampling is a boolean flag in the CLI; pass it without a value
-    MAIN_ARGS="$MAIN_ARGS --sampling --temperature $TEMPERATURE"
+    MAIN_ARGS="$MAIN_ARGS --sampling --temperature $TEMPERATURE --top_k $TOP_K"
+else
+    MAIN_ARGS="$MAIN_ARGS --temperature $TEMPERATURE"
 fi
 
 if [ "$VERBOSE" = true ]; then
-    # --verbose is a boolean flag; pass it alone
     MAIN_ARGS="$MAIN_ARGS --verbose"
 fi
-
-# Add output file inclusion for analysis
-## --include_prompt is a boolean flag; pass it alone to enable including the prompt in output
-MAIN_ARGS="$MAIN_ARGS --include_prompt"
 
 echo "Full command: python src/main.py $MAIN_ARGS"
 echo ""

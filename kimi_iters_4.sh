@@ -2,14 +2,14 @@
 #SBATCH --account=IscrC_VisLLMs
 #SBATCH --partition=boost_usr_prod
 #SBATCH --time=50:00:00
-#SBATCH --gres=gpu:2
+#SBATCH --gres=gpu:4
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
-#SBATCH --job-name=gemma3_iters_2
-#SBATCH --output=gemma3_iters_2.out
-#SBATCH --error=gemma3_iters_2.err
+#SBATCH --job-name=kimi_iters_4
+#SBATCH --output=kimi_iters_4.out
+#SBATCH --error=kimi_iters_4.err
 
 # ====================================================================
 # LLM-Needs-a-Plan Production Experiment
@@ -100,22 +100,22 @@ if torch.cuda.is_available():
 # ====================================================================
 
 # Model configuration
-MODEL_NAME="gemma3"
-WEIGHTS_PATH="src/models/Gemma3"  # weights directory for the chosen model
+MODEL_NAME="kimi"
+WEIGHTS_PATH="src/models/Kimi"  # weights directory for the chosen model
 OUTPUT_DIR="src/results"
 
 # Domain configuration  
 PROBLEMS_PATH="src/data"
 
 # Generation parameters
-MAX_ITERATIONS=2
+MAX_ITERATIONS=4
 MAX_TOKENS=5000
 TEMPERATURE=0.1
 TOP_K=10
 
 # Logging configuration
 LOG_LEVEL="INFO"
-LOG_FILE=""  # set to e.g. "logs/gemma3_iters_2.log" to persist logs
+LOG_FILE=""  # set to e.g. "logs/kimi_iters_1.log" to persist logs
 
 # Features to enable
 ENABLE_SYSTEM_PROMPT=true
@@ -126,8 +126,8 @@ SKIP_SPECIAL_TOKENS=true
 VERBOSE=true
 
 # Create results directory
-mkdir -p src/results/gemma3
-echo "Results will be saved to: src/results/gemma3"
+mkdir -p src/results/kimi
+echo "Results will be saved to: src/results/kimi"
 
 echo "=========================================="
 echo "Experiment Configuration"

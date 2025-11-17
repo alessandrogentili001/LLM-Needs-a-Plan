@@ -61,6 +61,10 @@ def extract_plan_actions(text: str) -> List[str]:
     if not text:
         return []
     
+    # Extract the assistant's response part to avoid picking up domain/problem content
+    if "assistant\n\n" in text:
+        text = text.split("assistant\n\n")[-1]
+    
     # Clean the text first
     text = clean_response_text(text)
     
@@ -79,6 +83,10 @@ def extract_plan_actions(text: str) -> List[str]:
     # Strategy 3: Extract numbered/bulleted actions  
     if not actions:
         actions = extract_numbered_actions(text)
+    
+    # Strategy 4: Extract lines starting with '('
+    if not actions:
+        actions = extract_lines_starting_with_paren(text)
     
     # Clean and validate actions
     return [clean_action(action) for action in actions if is_valid_action(action)]
@@ -104,7 +112,7 @@ def clean_response_text(text: str) -> str:
     text = re.sub(r'`([^`]+)`', r'\1', text)
     
     # Normalize whitespace
-    text = re.sub(r'\s+', ' ', text)
+    text = re.sub(r'[ \t]+', ' ', text)
     
     return text.strip()
 
@@ -166,6 +174,42 @@ def parse_action_lines(text: str) -> List[str]:
     return actions
 
 
+def _looks_like_action(text: str) -> bool:
+    """
+    Heuristic to determine if text looks like a PDDL action.
+    
+    Args:
+        text (str): Text to evaluate
+        
+    Returns:
+        bool: True if text looks like an action
+    """
+    
+    text = text.lower().strip()
+    
+    # Should contain action-like words
+    action_indicators = [
+        'move', 'place', 'pick', 'put', 'go', 'drive', 'load', 'unload',
+        'drop', 'lift', 'push', 'pull', 'rotate', 'turn', 'shift',
+        'car', 'arrived', 'start', 'build', 'destroy', 'straight', 'diagonal'
+    ]
+    
+    # Should not contain explanation words
+    explanation_words = [
+        'because', 'since', 'therefore', 'this will', 'we need', 'explanation',
+        'note that', 'remember', 'important', 'first we', 'then we'
+    ]
+    
+    has_action_word = any(word in text for word in action_indicators)
+    has_explanation = any(word in text for word in explanation_words)
+    
+    # Basic format check - should have multiple words
+    words = text.split()
+    has_good_length = 2 <= len(words) <= 10
+    
+    return has_action_word and not has_explanation and has_good_length
+
+
 def extract_parenthesized_actions(text: str) -> List[str]:
     """
     Extract actions in parentheses format.
@@ -214,39 +258,28 @@ def extract_numbered_actions(text: str) -> List[str]:
     return actions
 
 
-def _looks_like_action(text: str) -> bool:
+def extract_lines_starting_with_paren(text: str) -> List[str]:
     """
-    Heuristic to determine if text looks like a PDDL action.
+    Extract lines that start with '(' as potential actions.
     
     Args:
-        text (str): Text to evaluate
+        text (str): Text to search
         
     Returns:
-        bool: True if text looks like an action
+        List[str]: List of extracted actions
     """
     
-    text = text.lower().strip()
+    lines = text.split('\n')
+    actions = []
+    for line in lines:
+        line = line.strip()
+        if line.startswith('(') and line.endswith(')'):
+            # Remove outer parentheses for checking
+            inner = line[1:-1].strip()
+            if _looks_like_action(inner):
+                actions.append(line)
     
-    # Should contain action-like words
-    action_indicators = [
-        'move', 'place', 'pick', 'put', 'go', 'drive', 'load', 'unload',
-        'drop', 'lift', 'push', 'pull', 'rotate', 'turn', 'shift'
-    ]
-    
-    # Should not contain explanation words
-    explanation_words = [
-        'because', 'since', 'therefore', 'this will', 'we need', 'explanation',
-        'note that', 'remember', 'important', 'first we', 'then we'
-    ]
-    
-    has_action_word = any(word in text for word in action_indicators)
-    has_explanation = any(word in text for word in explanation_words)
-    
-    # Basic format check - should have multiple words
-    words = text.split()
-    has_good_length = 2 <= len(words) <= 10
-    
-    return has_action_word and not has_explanation and has_good_length
+    return actions
 
 
 def clean_action(action: str) -> str:

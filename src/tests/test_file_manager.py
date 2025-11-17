@@ -63,7 +63,7 @@ def main():
     print(f"\nTesting FileManager.find_pddl_files()...")
     try:
         pddl_data = file_manager.find_pddl_files(str(abs_problems_path))
-        
+
         if not pddl_data:
             print("No PDDL files found (this is expected if no domain/problem files are added yet)")
             print("To test fully, add PDDL files to domain directories:")
@@ -73,8 +73,8 @@ def main():
         else:
             print(f"Found {len(pddl_data)} domains:")
             for domain_data in pddl_data:
-                domain_name = domain_data["domain_name"]
-                problem_count = len(domain_data["problem_paths"])
+                domain_name = domain_data.domain_name
+                problem_count = len(domain_data.problem_paths)
                 print(f"  - {domain_name}: {problem_count} problems")
                 
     except Exception as e:

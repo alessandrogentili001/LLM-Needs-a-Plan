@@ -7,9 +7,9 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
-#SBATCH --job-name=gemma3_iters_2
-#SBATCH --output=gemma3_iters_2.out
-#SBATCH --error=gemma3_iters_2.err
+#SBATCH --job-name=gemma3_iters_4
+#SBATCH --output=gemma3_iters_4.out
+#SBATCH --error=gemma3_iters_4.err
 
 # ====================================================================
 # LLM-Needs-a-Plan Production Experiment
@@ -108,14 +108,14 @@ OUTPUT_DIR="src/results"
 PROBLEMS_PATH="src/data"
 
 # Generation parameters
-MAX_ITERATIONS=2
+MAX_ITERATIONS=4
 MAX_TOKENS=5000
 TEMPERATURE=0.1
 TOP_K=10
 
 # Logging configuration
 LOG_LEVEL="INFO"
-LOG_FILE=""  # set to e.g. "logs/gemma3_iters_2.log" to persist logs
+LOG_FILE=""  # set to e.g. "logs/gemma3_iters_1.log" to persist logs
 
 # Features to enable
 ENABLE_SYSTEM_PROMPT=true

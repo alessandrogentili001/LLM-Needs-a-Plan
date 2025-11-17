@@ -33,8 +33,8 @@ fm = FileManager()
 domains_data = fm.find_pddl_files("src/data")
 
 for domain_data in domains_data:
-    print(f"Domain: {domain_data['domain_name']}")
-    print(f"Problems: {len(domain_data['problem_paths'])}")
+    print(f"Domain: {domain_data.domain_name}")
+    print(f"Problems: {len(domain_data.problem_paths)}")
 ```
 
 **Methods:**
@@ -57,16 +57,26 @@ Manages loading and interaction with large language models.
 **Example Usage:**
 ```python
 from core.model_manager import ModelManager
+from prompts.prompts import system_prompt_pddl
 
 # Initialize and load model
 mm = ModelManager("src/models/Phi4")
 model, tokenizer = mm.load()
 
 # Generate response
+messages = [
+    {"role": "system", "content": system_prompt_pddl},
+    {"role": "user", "content": "Generate a plan for this PDDL problem..."},
+]
+
 response = mm.generate_response(
-    prompt="Generate a plan for this PDDL problem...",
+    messages,
     max_tokens=5000,
-    sampling=False
+    sampling=False,
+    temperature=0.0,
+    top_k=50,
+    include_prompt=False,
+    skip_special_tokens=True,
 )
 ```
 
@@ -185,6 +195,16 @@ class Args:
     batch = False
     cot = False
     sampling = False
+    add_system_prompt = True
+    include_prompt = False
+    skip_special_tokens = True
+    max_tokens = 5000
+    temperature = 0.6
+    top_k = 10
+    model = "auto"
+    verbose = False
+    log_level = "INFO"
+    log_file = None
 
 args = Args()
 
@@ -195,7 +215,11 @@ planner.run()    # Processes domains and generates plans
 
 # Get results
 results = planner.get_results()
-print(f"Success rate: {results['overall_stats']['success_rate']}%")
+stats = results.get("overall_stats", {})
+total = stats.get("total_problems", 0)
+success = stats.get("total_successful", 0)
+rate = (success / total) * 100 if total else 0
+print(f"Success rate: {rate:.1f}%")
 ```
 
 ## Configuration
