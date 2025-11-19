@@ -65,6 +65,11 @@ def extract_plan_actions(text: str) -> List[str]:
     if "assistant\n\n" in text:
         text = text.split("assistant\n\n")[-1]
     
+    # Debug: log a preview of the isolated text
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.debug(f"Isolated assistant text preview: {text[:500]}...")
+    
     # Clean the text first
     text = clean_response_text(text)
     

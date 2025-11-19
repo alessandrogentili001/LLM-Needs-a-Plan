@@ -1,0 +1,13 @@
+(at_two straight0 f1-2f f1-3f)
+(at_two straight1 f7-2f f7-3f)
+(at_two straight2 f13-2f f13-3f)
+(at_two straight0 f1-2f f1-3f)
+(at_two straight1 f7-2f f7-3f)
+(at_two straight2 f13-2f f13-3f)
+
+--- Processing Metadata ---
+Domain: tetris
+Problem: instance-20
+Iterations: 1
+Plan Valid: True
+Chain of Thought: True
