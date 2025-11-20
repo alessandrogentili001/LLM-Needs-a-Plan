@@ -70,28 +70,46 @@ def extract_plan_actions(text: str) -> List[str]:
     logger = logging.getLogger(__name__)
     logger.debug(f"Isolated assistant text preview: {text[:500]}...")
     
+    # Keep a copy of the raw text (after assistant split) for fallback
+    raw_text_fallback = text
+    
     # Clean the text first
-    text = clean_response_text(text)
+    cleaned_text = clean_response_text(text)
     
-    # Try different extraction strategies
-    actions = []
+    # Debug: log cleaned text
+    logger.debug(f"Cleaned text preview: {cleaned_text[:500]}...")
     
-    # Strategy 1: Look for explicit plan sections
-    plan_section = extract_plan_section(text)
-    if plan_section:
-        actions = parse_action_lines(plan_section)
+    # Helper to try extraction on a given text
+    def try_extract(input_text):
+        acts = []
+        # Strategy 1: Look for explicit plan sections
+        plan_section = extract_plan_section(input_text)
+        if plan_section:
+            acts = parse_action_lines(plan_section)
+        
+        # Strategy 2: Extract parenthesized actions
+        if not acts:
+            acts = extract_parenthesized_actions(input_text)
+        
+        # Strategy 3: Extract numbered/bulleted actions  
+        if not acts:
+            acts = extract_numbered_actions(input_text)
+        
+        # Strategy 4: Extract lines starting with '('
+        if not acts:
+            acts = extract_lines_starting_with_paren(input_text)
+        return acts
+
+    # 1. Try extracting from cleaned text (standard behavior)
+    actions = try_extract(cleaned_text)
     
-    # Strategy 2: Extract parenthesized actions
+    # 2. Fallback: If no actions found, try extracting from raw text
+    # This handles cases where the plan is inside <think> blocks or the cleaning was too aggressive
     if not actions:
-        actions = extract_parenthesized_actions(text)
-    
-    # Strategy 3: Extract numbered/bulleted actions  
-    if not actions:
-        actions = extract_numbered_actions(text)
-    
-    # Strategy 4: Extract lines starting with '('
-    if not actions:
-        actions = extract_lines_starting_with_paren(text)
+        logger.debug("No actions found in cleaned text. Attempting fallback to raw text...")
+        actions = try_extract(raw_text_fallback)
+        if actions:
+            logger.debug(f"Fallback successful: found {len(actions)} actions in raw text.")
     
     # Clean and validate actions
     return [clean_action(action) for action in actions if is_valid_action(action)]
@@ -107,6 +125,12 @@ def clean_response_text(text: str) -> str:
     Returns:
         str: Cleaned text
     """
+    
+    # Remove <think>...</think> blocks (common in reasoning models)
+    # Handle both complete blocks and unclosed blocks (if generation was truncated)
+    # Also handle Kimi's style: ◁think▷...◁/think▷ or similar variants if they appear
+    text = re.sub(r'<think>.*?(?:</think>|$)', '', text, flags=re.DOTALL | re.IGNORECASE)
+    text = re.sub(r'◁think▷.*?(?:◁/think▷|$)', '', text, flags=re.DOTALL | re.IGNORECASE)
     
     # Remove common prefixes/suffixes
     text = re.sub(r'^(Here is|Here\'s|The plan is|Plan:)', '', text, flags=re.IGNORECASE)
@@ -341,7 +365,9 @@ def is_valid_action(action: str) -> bool:
             return False
     
     # Should not contain invalid characters for PDDL
-    if re.search(r'[^\w\s\(\)\-_]', action):
+    # Allow common punctuation at the end
+    cleaned = re.sub(r'[.,;]+$', '', action)
+    if re.search(r'[^\w\s\(\)\-_]', cleaned):
         return False
     
     return True

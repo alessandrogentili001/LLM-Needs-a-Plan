@@ -9,7 +9,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, logging as hf_logging
 
 from prompts.prompts import system_prompt_pddl
-from utils.answer_postprocessor import formatter
+from utils.answer_postprocessor import formatter, clean_response_text
 from utils.logging_utils import get_logger
 from utils.validator import validate_plan_from_text
 
@@ -207,6 +207,9 @@ class ModelManager:
             "skip_special_tokens": True,
         }
         config = {**defaults, **generation_kwargs}
+        # Force include_prompt to False for iterative planning to avoid context duplication
+        # and ensure clean response extraction
+        config["include_prompt"] = False
 
         last_response = ""
 
@@ -275,7 +278,14 @@ class ModelManager:
         assistant: str,
         user: str,
     ) -> None:
-        messages.append({"role": "assistant", "content": assistant})
+        # Clean the assistant response to remove long reasoning traces (e.g. <think> blocks)
+        # This prevents the context from growing too large and confusing the model in the next turn
+        cleaned_assistant = clean_response_text(assistant)
+        if not cleaned_assistant:
+            # If cleaning removed everything (e.g. only thoughts were present), use a placeholder
+            cleaned_assistant = "No plan generated."
+            
+        messages.append({"role": "assistant", "content": cleaned_assistant})
         messages.append({"role": "user", "content": user})
 
     def _build_validation_feedback(

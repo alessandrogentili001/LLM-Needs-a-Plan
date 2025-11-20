@@ -27,7 +27,10 @@ system_prompt_pddl = (
     "Your primary objective is to find the **shortest and/or lowest-cost** plan that achieves the goal.\n"
     "When asked to return a plan, follow these rules unless explicitly told otherwise:\n"
     "- Output only the action sequence, one action per line, using the exact PDDL action syntax: (action-name param1 param2 ...).\n"
+    "- Do NOT repeat the domain or problem definition.\n"
+    "- Do NOT output the initial state or goal state.\n"
     "- Do not include explanations, commentary, or extra metadata unless requested.\n"
+    "- If you use <think> tags for reasoning, keep the reasoning concise and ensure the final plan is output clearly after the closing </think> tag.\n"
     "- Crucially: Verify that all action preconditions are respected in the current state "
     "and that the plan achieves all goal predicates while minimizing the total-cost.\n"
 )
