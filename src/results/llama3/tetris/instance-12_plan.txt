@@ -1,13 +1,10 @@
 (at_two straight0 f1-1f f1-2f)
-(at_two straight1 f2-1f f2-2f)
 (at_two straight0 f5-1f f5-2f)
-(at_two straight1 f6-1f f6-2f)
-(at_two straight0 f8-1f f8-2f)
-(at_two straight1 f9-1f f9-2f)
-(at_two straight0 f11-1f f11-2f)
-(at_two straight1 f12-1f f12-2f)
+(at_two straight0 f9-1f f9-2f)
+(at_two straight0 f13-1f f13-2f)
 (at_two straight0 f5-1f f5-2f)
-(at_two straight1 f6-1f f6-2f)
+(at_two straight0 f9-1f f9-2f)
+(at_two straight0 f13-1f f13-2f)
 
 --- Processing Metadata ---
 Domain: tetris

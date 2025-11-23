@@ -65,10 +65,18 @@ class FileManager:
         bundles: List[DomainBundle] = []
         logger.info("Scanning PDDL domains in %s", root)
 
-        for domain_dir in sorted(self._iter_domain_directories(root)):
-            bundle = self._build_domain_bundle(domain_dir)
+        # Check if the root path itself is a domain directory
+        if self._locate_domain_file(root):
+            logger.info("Root path identified as a single domain directory.")
+            bundle = self._build_domain_bundle(root)
             if bundle:
                 bundles.append(bundle)
+        else:
+            # Otherwise, iterate over subdirectories
+            for domain_dir in sorted(self._iter_domain_directories(root)):
+                bundle = self._build_domain_bundle(domain_dir)
+                if bundle:
+                    bundles.append(bundle)
 
         logger.info("Discovered %d domain(s)", len(bundles))
         return bundles
