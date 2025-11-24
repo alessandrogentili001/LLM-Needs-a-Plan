@@ -3,6 +3,7 @@ src/models
 
 # Virtual environment 
 venv
+analysis_venv
 
 # Python cache files
 __pycache__
