@@ -1,12 +1,13 @@
-# Emergent Capabilities of LLMs: Meta-Evaluation of Planning and Reasoning in Large Language Models
+# Emergent Capabilities of LLMs: Evaluate Planning and Reasoning in Large Language Models Modulo Framework
 
 ## Authors
+
 - **Alessandro Gentili** - *AI Student @UniBo* - [GitHub](https://github.com/alessandrogentili001)
 - **Lorenzo D'Ascenzo** - *AI Student @UniBo* - [GitHub](https://github.com/Lorenzo00dash)
 
 ## Abstract
 
-This project extends previous work by our colleagues [Merola, Sigh, and Dardouri](https://dvcs.apice.unibo.it/pika-lab/courses/ai-ethics/projects/merolasinghdardouri2425) on evaluating LLM performance in planning tasks and developing a meta-network for reliability prediction. The proposed extensions focus on two directions: (1) exploring emergent reasoning capabilities across a broader range of open-source large language models, including Mistral, LLaMA, and DeepSeek, to assess whether planning abilities generalize across architectures; and (2) enriching the benchmark dataset with new, challenging planning problems of graded complexity. Together, these extensions aim to deepen our understanding of LLM reasoning, improve evaluation reliability, and foster reproducible benchmarks for the research community.
+This project extends previous work by our colleagues [Merola, Sigh, and Dardouri](https://dvcs.apice.unibo.it/pika-lab/courses/ai-ethics/projects/merolasinghdardouri2425) on evaluating LLM performance in planning tasks under the supervision of an external validator. The proposed extensions focus on two directions: (1) exploring emergent reasoning capabilities across a broader range of open-source large language models, including Kimi, LLaMA, and Gemma, to assess whether planning abilities generalize across architectures; and (2) enriching the benchmark dataset with new, challenging planning problems of graded complexity. Together, these extensions aim to deepen our understanding of LLM reasoning, improve evaluation reliability, and foster reproducible benchmarks for the research community.
 
 ## Disclaimer
 
@@ -15,13 +16,103 @@ Access to Leonardo's computational capabilities enables us to perform experiment
 
 ## Documentation
 
-### Repository Structure 
+### Repository Structure
+
+```text
+LLM-Needs-a-Plan/
+├── README.md
+├── config.yml
+├── requirements.txt
+├── requirements_analysis.txt
+├── Results Analysis.ipynb
+├── analysis_venv/
+│   └── ... (virtual environment files)
+├── assets/
+|   ├── images/
+│   │   └── ... (images and plots)
+│   ├── literature/
+│   │   └── ... (papers and references)
+│   └── tutorials/
+│       ├── 1. Pre Configuration.md
+│       ├── 2. Cluster Set Up.md
+│       ├── 3. Load Local Files Into The Cluster.md
+│       ├── 4. First Job Submission.md
+│       ├── 5. Work Directory And LLMs Download.md
+│       └── 6. SLURM Files Explained.md
+├── scripts/
+│   ├── gemma3_iters_1.sh
+│   ├── gemma3_iters_2.sh
+│   ├── gemma3_iters_3.sh
+│   ├── gemma3_iters_4.sh
+│   ├── gemma3_iters_4_citycar.sh
+│   ├── gemma3_iters_4_tetris.sh
+│   ├── kimi_iters_1.sh
+│   ├── kimi_iters_2.sh
+│   ├── kimi_iters_3.sh
+│   ├── kimi_iters_4.sh
+│   ├── kimi_iters_4_citycar.sh
+│   ├── kimi_iters_4_tetris.sh
+│   ├── llama3_iters_1.sh
+│   ├── llama3_iters_2.sh
+│   ├── llama3_iters_3.sh
+│   ├── llama3_iters_4.sh
+│   ├── phi4_iters_1.sh
+│   ├── phi4_iters_2.sh
+│   ├── phi4_iters_3.sh
+│   └── phi4_iters_4.sh
+├── src/
+│   ├── main.py
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── file_manager.py
+│   │   ├── model_manager.py
+│   │   ├── pddl_planner.py
+│   │   ├── pddl_processor.py
+│   │   └── README.md
+│   ├── data/
+│   │   ├── README.md
+│   │   ├── citycar/
+│   │   │   └── ... (PDDL domain & problems)
+│   │   └── tetris/
+│   │       └── ... (PDDL domain & problems)
+│   ├── models/
+│   │   ├── README.md
+│   │   └── ... (paths to weights & tokenizers)
+│   ├── prompts/
+│   │   ├── __init__.py
+│   │   └── prompts.py
+│   ├── results/
+│   │   ├── gemma3/
+│   │   ├── kimi/
+│   │   ├── llama3/
+│   │   └── phi4/
+│   ├── tests/
+│   │   ├── test_cluster.py
+│   │   ├── test_file_manager.py
+│   │   ├── test_model_manager.py
+│   │   ├── test_pddl_planner.py
+│   │   ├── test_pddl_processor.py
+│   │   └── test_val_integration.py
+│   └── utils/
+│       ├── __init__.py
+│       ├── answer_postprocessor.py
+│       ├── common_utils.py
+│       ├── configuration.py
+│       ├── logging_utils.py
+│       └── validator.py
+└── VAL/
+    ├── CMakeLists.txt
+    ├── doxygen.config
+    ├── LICENSE
+    ├── README.md
+    └── ... (validator source, libraries, samples, scripts)
+```
 
 ### Literature Review
 
 A bunch of papers inspired this work. You can have a look on them [here](assets/literature/).
 
-### Leonardo
+### Leonardo HPC
 
 An official guide to the cluster login and setup is provided:
 
@@ -36,6 +127,8 @@ Additional step-by-step tutorials about the configuration, setup and usage of th
 - [Work Directory And LLMs Download](assets/tutorials/5.%20Work%20Directory%20And%20LLMs%20Download.md)
 - [SLURM files explained](assets/tutorials/5.%20SLURM%20DFiles%20Explained.md)
 
+![Welcome to Leonardo Cluster Node](assets/images/welcome_to_leonardo.jpg)
+
 ### Problems
 
 The planning problems, written in PPDL language, are taken from this [repository](https://github.com/potassco/pddl-instances), where a description and multiple instances are provided for each problem. In particular we have selected a couple of them:
@@ -45,7 +138,7 @@ The planning problems, written in PPDL language, are taken from this [repository
 
 Each of the selected problems comes with a list of instances at different scale and complexity. You can have an in depth look by reading [this](src/data/README.md).
 
-### Models
+### LLMs
 
 This project utilizes three state-of-the-art large language models to evaluate and compare their planning and reasoning capabilities. The selection provides a comprehensive analysis across different model sizes and architectures, from compact efficiency to high-capacity reasoning:
 
@@ -66,12 +159,4 @@ Small scripts are added [here](src/tests) to test things on an ongoing basis.
 ### Validator
 
 You can find the planning validator description [here](https://github.com/KCL-Planning/VAL?utm_source=chatgpt.com).
-
-## Getting Started
-
-### Prerequisites
-
-### Installation
-
-### Running Experiments
 
